@@ -1,6 +1,6 @@
 package main
 
-import "github.com/nItroTools/sungrow-go/ws"
+import "github.com/sroeck/sungrow-go/ws"
 
 var (
 	pvKeys = ws.Keys{
@@ -16,6 +16,10 @@ var (
 		"I18N_COMMON_LOAD_TOTAL_ACTIVE_POWER":         "consumption",
 		"I18N_CONFIG_KEY_1001188":                     "consumptionRate",
 		"I18N_COMMON_AIR_TEM_INSIDE_MACHINE":          "inverterTemp",
+		"I18N_COMMON_TOTAL_GRID_RUNNING_TIME":		   "totalRunningTime",
+		"I18N_COMMON_DAILY_POWER_YIELD":               "todayEnergy",
+		"I18N_COMMON_TOTAL_YIELD":                     "totalEnergy",
+		"I18N_COMMON_TOTAL_ACTIVE_POWER":              "activePower",
 	}
 
 	batteryKeys = ws.Keys{

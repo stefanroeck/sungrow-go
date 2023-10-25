@@ -2,11 +2,12 @@ package ws
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"golang.org/x/net/websocket"
 	"net"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
+	"golang.org/x/net/websocket"
 )
 
 type WS struct {
@@ -67,33 +68,34 @@ func (ws *WS) Close() {
 }
 
 // Pv fetches pv data from the inverter.
-func (ws *WS) Pv(keyList Keys, separator string) (err error) {
+func (ws *WS) Pv(keyList Keys, separator string) (err error, res map[string]float64) {
 	return ws.fetch("real", keyList, separator)
 }
 
 // Battery fetches battery data from the inverter.
-func (ws *WS) Battery(keyList Keys, separator string) (err error) {
+func (ws *WS) Battery(keyList Keys, separator string) (err error, res map[string]float64) {
 	return ws.fetch("real_battery", keyList, separator)
 }
 
 // fetch fetches data from the inverter.
-func (ws *WS) fetch(service string, keyList Keys, separator string) (err error) {
+func (ws *WS) fetch(service string, keyList Keys, separator string) (err error, res map[string]float64) {
 	req := RequestReal{"de_de", ws.token, ws.uid, service, time.Now().UnixMilli()}
 	if err := websocket.JSON.Send(ws.conn, &req); err != nil {
-		return err
+		return err, nil
 	}
 	resp := ResponseReal{}
 	if err := websocket.JSON.Receive(ws.conn, &resp); err != nil {
-		return err
+		return err, nil
 	}
 
 	// Output values
+	result := make(map[string]float64)
 	for _, row := range resp.ResultData.List {
 		if _, exists := keyList[row.DataName]; exists {
 			val, _ := strconv.ParseFloat(row.DataValue, 64)
-			fmt.Printf("%s%s%.3f%s%s\n", keyList[row.DataName], separator, val, separator, row.DataUnit)
+			result[keyList[row.DataName]] = val
 		}
 	}
 
-	return nil
+	return nil, result
 }
