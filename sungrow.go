@@ -66,7 +66,7 @@ func flags() (inverter, mqtt.MqttParams) {
 	path := flag.String("path", "/ws/home/overview", "Server path from where data is requested")
 	data := flag.String("data", "pv,battery", "Select the data to be requested comma separated.\nPossible values are \"pv\" and \"battery\"")
 	separator := flag.String("separator", ",", "Output data separator")
-	mqttServer := flag.String("mqtt.server", "", "mqtt server incl. protocol, e.g. mqtt://localhost:1883")
+	mqttServer := flag.String("mqtt.server", "", "mqtt server incl. protocol, e.g. mqtt://localhost:1883. For TLS use ssl scheme, e.g. ssl://localhost:8883")
 	mqttUser := flag.String("mqtt.user", "", "mqtt user name")
 	mqttPassword := flag.String("mqtt.password", "", "mqtt password")
 	mqttClientId := flag.String("mqtt.clientId", "", "mqtt clientId that is used for publishing")

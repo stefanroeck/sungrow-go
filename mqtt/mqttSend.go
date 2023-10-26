@@ -1,8 +1,10 @@
 package mqtt
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -20,6 +22,10 @@ func Send(params MqttParams, data map[string]float64) {
 	broker.SetClientID(params.ClientId)
 	broker.SetUsername(params.User).SetPassword(params.Password)
 
+	if strings.HasPrefix(params.Server, "ssl")  {
+		broker.SetTLSConfig(&tls.Config{InsecureSkipVerify: true});
+	}
+
 	client := mqtt.NewClient(broker)
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
@@ -33,6 +39,10 @@ func Send(params MqttParams, data map[string]float64) {
 	}
 	token := client.Publish(params.Topic, 0, false, string(json))
 	token.Wait()
+	if (token.Error() != nil) {
+		panic(token.Error())		
+	}
+
 	fmt.Println("Published to topic", params.Topic)
 	
 	client.Disconnect(250)
