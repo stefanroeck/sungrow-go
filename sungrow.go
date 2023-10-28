@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"strings"
-	"time"
 
 	"github.com/sroeck/sungrow-go/mqtt"
 	"github.com/sroeck/sungrow-go/ws"
@@ -18,29 +17,24 @@ type InverterParams struct {
 	port      int
 	path      string
 	data      string
-	separator string
 	types     []string
 }
 
 func main() {
+	inv, mqttParams, _ := flags()
 
-	// Flags
-	inv, mqttParams := flags()
-	// Connect to inverter
-	webSocket := ws.NewWS(inv.ip, inv.port, inv.path)
-	if err := webSocket.Connect(); err != nil {
-		log.Fatalln(err)
-	}
+	fetchDataFromInverterAndSendToMqtt(inv, mqttParams)
+}
+
+func fetchDataFromInverterAndSendToMqtt(inverterParams InverterParams, mqttParams mqtt.MqttParams) {
+	webSocket := openWebSocket(inverterParams)	
 	defer webSocket.Close()
 
-	// Output timestamp row
-	fmt.Printf("%s%s%s%s%s\n", "time", inv.separator, time.Now().Format(time.RFC3339), inv.separator, "RFC3339")
 
-	// Fetch values from inverter
-	for _, t := range inv.types {
+	for _, t := range inverterParams.types {
 		switch t {
 		case "pv":
-			fetchAndProcessValues(webSocket, mqttParams)
+			fetchAndProcessPv(webSocket, mqttParams)
 			break
 		case "battery":
 			_, _ = webSocket.Battery(batteryKeys)
@@ -49,8 +43,21 @@ func main() {
 	}
 }
 
-func fetchAndProcessValues(webSocket *ws.WS, mqttParams mqtt.MqttParams) {
-	_, values := webSocket.Pv(pvKeys)
+func openWebSocket(inverterParams InverterParams) (*ws.WS) {
+	webSocket := ws.NewWS(inverterParams.ip, inverterParams.port, inverterParams.path)
+	if err := webSocket.Connect(); err != nil {
+		log.Fatalln(err)
+	}
+	return webSocket
+}
+
+func fetchAndProcessPv(webSocket *ws.WS, mqttParams mqtt.MqttParams) {
+	err, values := webSocket.Pv(pvKeys)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Println("Received the following values:")
 	for k, v := range values {
 		fmt.Println(k, "=", v)
 	}
@@ -58,21 +65,21 @@ func fetchAndProcessValues(webSocket *ws.WS, mqttParams mqtt.MqttParams) {
 }
 
 // flags defines, parses and validates command-line flags from os.Args[1:]
-func flags() (InverterParams, mqtt.MqttParams) {
+func flags() (InverterParams, mqtt.MqttParams, int) {
 
 	ipS := flag.String("ip", "", "IP address of the Sungrow inverter")
 	port := flag.Int("port", 8082, "WebSocket port of the Sungrow inverter")
 	path := flag.String("path", "/ws/home/overview", "Server path from where data is requested")
 	data := flag.String("data", "pv,battery", "Select the data to be requested comma separated.\nPossible values are \"pv\" and \"battery\"")
-	separator := flag.String("separator", ",", "Output data separator")
 	mqttServer := flag.String("mqtt.server", "", "mqtt server incl. protocol, e.g. mqtt://localhost:1883. For TLS use ssl scheme, e.g. ssl://localhost:8883")
 	mqttUser := flag.String("mqtt.user", "", "mqtt user name")
 	mqttPassword := flag.String("mqtt.password", "", "mqtt password")
 	mqttClientId := flag.String("mqtt.clientId", "", "mqtt clientId that is used for publishing")
 	mqttTopic := flag.String("mqtt.topic", "topic", "mqtt topic to which the data are published")
+	sleepBetweenCalls := flag.Int("sleep", 10_000, "sleep time in ms between inverter calls.")
 	flag.Parse()
 
-	inv := &InverterParams{ipS: *ipS, port: *port, path: *path, data: *data, separator: *separator}
+	inv := &InverterParams{ipS: *ipS, port: *port, path: *path, data: *data}
 	
 	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword}
 
@@ -80,7 +87,7 @@ func flags() (InverterParams, mqtt.MqttParams) {
 	flagsValidate(inv)
 	flagsValidateMqtt(*mqttParams)
 
-	return *inv, *mqttParams
+	return *inv, *mqttParams, *sleepBetweenCalls
 }
 
 // flagsValidate validates all flags
