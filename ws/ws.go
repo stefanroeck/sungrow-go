@@ -68,17 +68,17 @@ func (ws *WS) Close() {
 }
 
 // Pv fetches pv data from the inverter.
-func (ws *WS) Pv(keyList Keys, separator string) (err error, res map[string]float64) {
-	return ws.fetch("real", keyList, separator)
+func (ws *WS) Pv(keyList Keys) (err error, res map[string]float64) {
+	return ws.fetch("real", keyList)
 }
 
 // Battery fetches battery data from the inverter.
-func (ws *WS) Battery(keyList Keys, separator string) (err error, res map[string]float64) {
-	return ws.fetch("real_battery", keyList, separator)
+func (ws *WS) Battery(keyList Keys) (err error, res map[string]float64) {
+	return ws.fetch("real_battery", keyList)
 }
 
 // fetch fetches data from the inverter.
-func (ws *WS) fetch(service string, keyList Keys, separator string) (err error, res map[string]float64) {
+func (ws *WS) fetch(service string, keyList Keys) (err error, res map[string]float64) {
 	req := RequestReal{"de_de", ws.token, ws.uid, service, time.Now().UnixMilli()}
 	if err := websocket.JSON.Send(ws.conn, &req); err != nil {
 		return err, nil

@@ -12,8 +12,7 @@ import (
 	"github.com/sroeck/sungrow-go/ws"
 )
 
-type inverter struct {
-	ws        *ws.WS
+type InverterParams struct {
 	ipS       string
 	ip        net.IP
 	port      int
@@ -28,11 +27,11 @@ func main() {
 	// Flags
 	inv, mqttParams := flags()
 	// Connect to inverter
-	inv.ws = ws.NewWS(inv.ip, inv.port, inv.path)
-	if err := inv.ws.Connect(); err != nil {
+	webSocket := ws.NewWS(inv.ip, inv.port, inv.path)
+	if err := webSocket.Connect(); err != nil {
 		log.Fatalln(err)
 	}
-	defer inv.ws.Close()
+	defer webSocket.Close()
 
 	// Output timestamp row
 	fmt.Printf("%s%s%s%s%s\n", "time", inv.separator, time.Now().Format(time.RFC3339), inv.separator, "RFC3339")
@@ -41,17 +40,17 @@ func main() {
 	for _, t := range inv.types {
 		switch t {
 		case "pv":
-			fetchAndProcessValues(inv, mqttParams)
+			fetchAndProcessValues(webSocket, mqttParams)
 			break
 		case "battery":
-			_, _ = inv.ws.Battery(batteryKeys, inv.separator)
+			_, _ = webSocket.Battery(batteryKeys)
 			break
 		}
 	}
 }
 
-func fetchAndProcessValues(inv inverter, mqttParams mqtt.MqttParams) {
-	_, values := inv.ws.Pv(pvKeys, inv.separator)
+func fetchAndProcessValues(webSocket *ws.WS, mqttParams mqtt.MqttParams) {
+	_, values := webSocket.Pv(pvKeys)
 	for k, v := range values {
 		fmt.Println(k, "=", v)
 	}
@@ -59,7 +58,7 @@ func fetchAndProcessValues(inv inverter, mqttParams mqtt.MqttParams) {
 }
 
 // flags defines, parses and validates command-line flags from os.Args[1:]
-func flags() (inverter, mqtt.MqttParams) {
+func flags() (InverterParams, mqtt.MqttParams) {
 
 	ipS := flag.String("ip", "", "IP address of the Sungrow inverter")
 	port := flag.Int("port", 8082, "WebSocket port of the Sungrow inverter")
@@ -73,7 +72,7 @@ func flags() (inverter, mqtt.MqttParams) {
 	mqttTopic := flag.String("mqtt.topic", "topic", "mqtt topic to which the data are published")
 	flag.Parse()
 
-	inv := &inverter{ipS: *ipS, port: *port, path: *path, data: *data, separator: *separator}
+	inv := &InverterParams{ipS: *ipS, port: *port, path: *path, data: *data, separator: *separator}
 	
 	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword}
 
@@ -85,7 +84,7 @@ func flags() (inverter, mqtt.MqttParams) {
 }
 
 // flagsValidate validates all flags
-func flagsValidate(inv *inverter) {
+func flagsValidate(inv *InverterParams) {
 	if inv.ip = net.ParseIP(inv.ipS); inv.ip == nil {
 		log.Fatalln("Required parameter 'ip' not set or invalid ip address!\n'sungrow-go -help' lists available parameters.")
 	}
