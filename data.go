@@ -20,6 +20,7 @@ var (
 		"I18N_COMMON_DAILY_POWER_YIELD":               "todayEnergy",
 		"I18N_COMMON_TOTAL_YIELD":                     "totalEnergy",
 		"I18N_COMMON_TOTAL_ACTIVE_POWER":              "activePower",
+		"I18N_COMMON_BUS_VOLTAGE":                     "busVoltage",
 	}
 
 	batteryKeys = ws.Keys{

@@ -91,6 +91,7 @@ func (ws *WS) fetch(service string, keyList Keys, separator string) (err error, 
 	// Output values
 	result := make(map[string]float64)
 	for _, row := range resp.ResultData.List {
+		//fmt.Printf("%s\n", row);
 		if _, exists := keyList[row.DataName]; exists {
 			val, _ := strconv.ParseFloat(row.DataValue, 64)
 			result[keyList[row.DataName]] = val
