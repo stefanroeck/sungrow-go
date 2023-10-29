@@ -95,7 +95,7 @@ func flags() (InverterParams, mqtt.MqttParams, int) {
 	mqttPassword := flag.String("mqtt.password", "", "mqtt password")
 	mqttClientId := flag.String("mqtt.clientId", "", "mqtt clientId that is used for publishing")
 	mqttTopic := flag.String("mqtt.topic", "topic", "mqtt topic to which the data are published")
-	sleepBetweenCalls := flag.Int("sleep", 5, "sleep time in seconds between inverter calls.")
+	sleepBetweenCalls := flag.Int("sleep", 10, "sleep time in seconds between inverter calls.")
 	flag.Parse()
 
 	inv := &InverterParams{ipS: *ipS, port: *port, path: *path, data: *data}
