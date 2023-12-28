@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  sungrow-go:
+    build:
+      context: ./../
+      dockerfile: ./docker/Dockerfile
+    image: stefanroeck/sungrow
+    restart: unless-stopped
+    environment:
+      - SUNGROW_HOST=${SUNGROW_HOST}
+      - MQTT_URL=${MQTT_URL}
+      - MQTT_USER=${MQTT_USER}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - SLEEP=30

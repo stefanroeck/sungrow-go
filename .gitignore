@@ -9,6 +9,8 @@ bin/
 *.so
 *.dylib
 sungrow-go
+sungrow-go-raspi
+sungrow-go-docker
 
 # Test binary, built with `go test -c`
 *.test
@@ -24,3 +26,4 @@ go.work
 
 # IDE
 .idea
+.env
