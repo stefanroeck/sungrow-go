@@ -18,6 +18,7 @@ type MqttParams struct {
 }
 
 func Send(params *MqttParams, data map[string]float64) {
+	fmt.Printf("Sending MQTT to %s\n", params.Server)
 	broker := mqtt.NewClientOptions().AddBroker(params.Server)
 	broker.SetClientID(params.ClientId)
 	broker.SetUsername(params.User).SetPassword(params.Password)

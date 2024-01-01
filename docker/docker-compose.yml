@@ -8,7 +8,11 @@ services:
     restart: unless-stopped
     environment:
       - SUNGROW_HOST=${SUNGROW_HOST}
+      - SUNGROW_DATA=${SUNGROW_DATA:-pv,battery}
+      - SUNGROW_PORT=${SUNGROW_PORT:-8082}
       - MQTT_URL=${MQTT_URL}
+      - MQTT_TOPIC=${MQTT_TOPIC:-sungrow/stats}
+      - MQTT_CLIENTID=${MQTT_CLIENTID}
       - MQTT_USER=${MQTT_USER}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
       - SLEEP=30
