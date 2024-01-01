@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"maps"
 	"strings"
 	"time"
 
@@ -20,7 +21,8 @@ type InverterParams struct {
 }
 
 func main() {
-	inv, mqttParams, sleepTimeInSeconds := flags()
+	inverterParams, mqttParams, sleepTimeInSeconds := flags()
+	fmt.Printf("Polling the inverter every %d seconds\n", sleepTimeInSeconds)
 
 	ticker := time.NewTicker(time.Duration(sleepTimeInSeconds) * time.Second)
     done := make(chan bool)
@@ -28,13 +30,13 @@ func main() {
 
 	go func() {
 		// run immediately and then at the configured interval
-		fetchDataFromInverterAndSendToMqtt(inv, mqttParams) 
+		fetchDataFromInverterAndSendToMqtt(inverterParams, mqttParams) 
 		for {
 			select {
             case <-done:
                 return
             case <-ticker.C:
-				fetchDataFromInverterAndSendToMqtt(inv, mqttParams)
+				fetchDataFromInverterAndSendToMqtt(inverterParams, mqttParams)
             }
 		}
 	}()
@@ -43,24 +45,51 @@ func main() {
 	select {}
 }
 
-func fetchDataFromInverterAndSendToMqtt(inverterParams InverterParams, mqttParams mqtt.MqttParams) {
+func fetchDataFromInverterAndSendToMqtt(inverterParams *InverterParams, mqttParams *mqtt.MqttParams) {
 	webSocket := openWebSocket(inverterParams)	
 	defer webSocket.Close()
 
+	var receivedValues map[string]float64 = make(map[string]float64)
 
 	for _, t := range inverterParams.types {
 		switch t {
 		case "pv":
-			fetchAndProcessPv(webSocket, mqttParams)
-			break
+			fmt.Println("Fetching pv data")
+			err, pvValues := webSocket.Pv(pvKeys)
+			processWsResult(receivedValues, pvValues, err)
 		case "battery":
-			_, _ = webSocket.Battery(batteryKeys)
-			break
+			fmt.Println("Fetching battery data")
+			err, batteryValues := webSocket.Battery(batteryKeys)
+			processWsResult(receivedValues, batteryValues, err)
 		}
 	}
+
+	if len(receivedValues) == 0 {
+		fmt.Println("Skip sending MQTT data as no data have been returned from inverter")
+		return
+	}
+
+	mqtt.Send(mqttParams, receivedValues)
 }
 
-func openWebSocket(inverterParams InverterParams) (*ws.WS) {
+func processWsResult(targetMap map[string]float64, resultMap map[string]float64, err error) {
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
+	if len(resultMap) == 0 {
+		fmt.Println("Warning: No data returned")
+		return
+	}
+
+	fmt.Println("Received the following values:")
+	for k, v := range resultMap {
+		fmt.Println(k, "=", v)
+	}
+	maps.Copy(targetMap, resultMap)
+}
+
+func openWebSocket(inverterParams *InverterParams) (*ws.WS) {
 	webSocket := ws.NewWS(inverterParams.host, inverterParams.port, inverterParams.path)
 	if err := webSocket.Connect(); err != nil {
 		log.Fatalln(err)
@@ -68,21 +97,8 @@ func openWebSocket(inverterParams InverterParams) (*ws.WS) {
 	return webSocket
 }
 
-func fetchAndProcessPv(webSocket *ws.WS, mqttParams mqtt.MqttParams) {
-	err, values := webSocket.Pv(pvKeys)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fmt.Println("Received the following values:")
-	for k, v := range values {
-		fmt.Println(k, "=", v)
-	}
-	mqtt.Send(mqttParams, values)
-}
-
 // flags defines, parses and validates command-line flags from os.Args[1:]
-func flags() (InverterParams, mqtt.MqttParams, int) {
+func flags() (*InverterParams, *mqtt.MqttParams, int) {
 
 	host := flag.String("host", "", "Hostname/IP address of the Sungrow inverter")
 	port := flag.Int("port", 8082, "WebSocket port of the Sungrow inverter")
@@ -96,39 +112,37 @@ func flags() (InverterParams, mqtt.MqttParams, int) {
 	sleepBetweenCalls := flag.Int("sleep", 10, "sleep time in seconds between inverter calls.")
 	flag.Parse()
 
-	inv := &InverterParams{host: *host, port: *port, path: *path, data: *data}
-	
+	inverterParams := &InverterParams{host: *host, port: *port, path: *path, data: *data}
 	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword}
 
 	// Validate flags
-	flagsValidate(inv)
-	flagsValidateMqtt(*mqttParams)
+	validateInverterFlags(inverterParams)
+	validateMqttFlags(mqttParams)
 
-	return *inv, *mqttParams, *sleepBetweenCalls
+	return inverterParams, mqttParams, *sleepBetweenCalls
 }
 
-// flagsValidate validates all flags
-func flagsValidate(inv *InverterParams) {
-	if len(inv.host) == 0 {
+// validateInverterFlags validates all flags
+func validateInverterFlags(inverterParams *InverterParams) {
+	if inverterParams.host == "" {
 		log.Fatalln("Required parameter 'host' not set!\n'sungrow-go -help' lists available parameters.")
 	}
 
-	inv.types = strings.Split(inv.data, ",")
-	if len(inv.types) < 1 {
+	inverterParams.types = strings.Split(inverterParams.data, ",")
+	if len(inverterParams.types) < 1 {
 		log.Fatalln("Required parameter 'data' not set or invalid value!\n'sungrow-go -help' lists available parameters and values.")
 	}
-	for _, t := range inv.types {
+	for _, t := range inverterParams.types {
 		switch t {
 		case "pv":
 		case "battery":
-			break
 		default:
 			log.Fatalf("Invalid value \"%s\" for parameter 'data'!\n'sungrow-go -help' lists available parameters and values.\n", t)
 		}
 	}
 }
 
-func flagsValidateMqtt(params mqtt.MqttParams) {
+func validateMqttFlags(params *mqtt.MqttParams) {
 	if (params.Server == "") {
 		log.Fatalln("Missing parameter mqtt.server")
 	}
