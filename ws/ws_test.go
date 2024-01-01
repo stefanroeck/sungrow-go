@@ -1,20 +1,19 @@
 package ws
 
 import (
-	"net"
 	"reflect"
 	"testing"
 )
 
 var (
-	testIp   = net.ParseIP("192.168.2.100")
+	testHost   = "192.168.2.100"
 	testPort = 8082
 	testPath = "/ws/home/overview"
 )
 
 func TestNewWS(t *testing.T) {
 	type fields struct {
-		ip   net.IP
+		host string
 		port int
 		path string
 	}
@@ -27,15 +26,15 @@ func TestNewWS(t *testing.T) {
 	}{
 		{
 			name:    "1",
-			fields:  fields{testIp, testPort, testPath},
-			want:    &WS{ip: testIp, port: testPort, path: testPath},
+			fields:  fields{testHost, testPort, testPath},
+			want:    &WS{host: testHost, port: testPort, path: testPath},
 			wantErr: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewWS(tt.fields.ip, tt.fields.port, tt.fields.path)
+			got := NewWS(tt.fields.host, tt.fields.port, tt.fields.path)
 
 			if reflect.TypeOf(got) != reflect.TypeOf(tt.want) {
 				t.Errorf("NewWS() = %v, want %v", reflect.TypeOf(got), reflect.TypeOf(tt.want))

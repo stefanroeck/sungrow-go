@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"strings"
 	"time"
 
@@ -13,8 +12,7 @@ import (
 )
 
 type InverterParams struct {
-	ipS       string
-	ip        net.IP
+	host      string
 	port      int
 	path      string
 	data      string
@@ -63,7 +61,7 @@ func fetchDataFromInverterAndSendToMqtt(inverterParams InverterParams, mqttParam
 }
 
 func openWebSocket(inverterParams InverterParams) (*ws.WS) {
-	webSocket := ws.NewWS(inverterParams.ip, inverterParams.port, inverterParams.path)
+	webSocket := ws.NewWS(inverterParams.host, inverterParams.port, inverterParams.path)
 	if err := webSocket.Connect(); err != nil {
 		log.Fatalln(err)
 	}
@@ -86,7 +84,7 @@ func fetchAndProcessPv(webSocket *ws.WS, mqttParams mqtt.MqttParams) {
 // flags defines, parses and validates command-line flags from os.Args[1:]
 func flags() (InverterParams, mqtt.MqttParams, int) {
 
-	ipS := flag.String("ip", "", "IP address of the Sungrow inverter")
+	host := flag.String("host", "", "Hostname/IP address of the Sungrow inverter")
 	port := flag.Int("port", 8082, "WebSocket port of the Sungrow inverter")
 	path := flag.String("path", "/ws/home/overview", "Server path from where data is requested")
 	data := flag.String("data", "pv,battery", "Select the data to be requested comma separated.\nPossible values are \"pv\" and \"battery\"")
@@ -98,7 +96,7 @@ func flags() (InverterParams, mqtt.MqttParams, int) {
 	sleepBetweenCalls := flag.Int("sleep", 10, "sleep time in seconds between inverter calls.")
 	flag.Parse()
 
-	inv := &InverterParams{ipS: *ipS, port: *port, path: *path, data: *data}
+	inv := &InverterParams{host: *host, port: *port, path: *path, data: *data}
 	
 	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword}
 
@@ -111,8 +109,8 @@ func flags() (InverterParams, mqtt.MqttParams, int) {
 
 // flagsValidate validates all flags
 func flagsValidate(inv *InverterParams) {
-	if inv.ip = net.ParseIP(inv.ipS); inv.ip == nil {
-		log.Fatalln("Required parameter 'ip' not set or invalid ip address!\n'sungrow-go -help' lists available parameters.")
+	if len(inv.host) == 0 {
+		log.Fatalln("Required parameter 'host' not set!\n'sungrow-go -help' lists available parameters.")
 	}
 
 	inv.types = strings.Split(inv.data, ",")

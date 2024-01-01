@@ -2,7 +2,6 @@ package ws
 
 import (
 	"fmt"
-	"net"
 	"strconv"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 )
 
 type WS struct {
-	ip    net.IP
+	host  string
 	port  int
 	path  string
 	conn  *websocket.Conn
@@ -20,9 +19,9 @@ type WS struct {
 }
 
 // NewWS returns a new WS instance.
-func NewWS(ip net.IP, port int, path string) *WS {
+func NewWS(host string, port int, path string) *WS {
 	ws := &WS{
-		ip:   ip,
+		host: host,
 		port: port,
 		path: path,
 	}
@@ -33,8 +32,10 @@ func NewWS(ip net.IP, port int, path string) *WS {
 // Connect connects to the inverter using the WebSocket protocol.
 func (ws *WS) Connect() (err error) {
 	// Connect to WebSocket
-	origin := fmt.Sprintf("http://%s", ws.ip.String())
-	url := fmt.Sprintf("ws://%s:%d%s", ws.ip.String(), ws.port, ws.path)
+	origin := fmt.Sprintf("http://%s", ws.host)
+	url := fmt.Sprintf("ws://%s:%d%s", ws.host, ws.port, ws.path)
+	fmt.Printf("Connecting to %s\n", url)
+
 	ws.conn, err = websocket.Dial(url, "", origin)
 	if err != nil {
 		return err

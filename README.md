@@ -58,7 +58,7 @@ $ sungrow-go -help
 Basic usage with ip address of your inverter (e.g. `192.168.2.100`)
 
 ```bash
-$ sungrow-go -ip 192.168.2.100 -mqtt.server mqtt://test.mosquitto.org:1883 -mqtt.topic honk/demo
+$ sungrow-go -host 192.168.2.100 -mqtt.server mqtt://test.mosquitto.org:1883 -mqtt.topic honk/demo
 ```
 
 # MQTT
