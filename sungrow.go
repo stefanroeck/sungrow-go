@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"maps"
 	"strings"
 	"time"
 
@@ -47,17 +48,30 @@ func fetchDataFromInverterAndSendToMqtt(inverterParams InverterParams, mqttParam
 	webSocket := openWebSocket(inverterParams)	
 	defer webSocket.Close()
 
+	var receivedValues map[string]float64 = make(map[string]float64)
 
 	for _, t := range inverterParams.types {
 		switch t {
 		case "pv":
-			fetchAndProcessPv(webSocket, mqttParams)
-			break
+			err, pvValues := webSocket.Pv(pvKeys)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			maps.Copy(receivedValues, pvValues)
 		case "battery":
-			_, _ = webSocket.Battery(batteryKeys)
-			break
+			err, batteryValues := webSocket.Battery(batteryKeys)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			maps.Copy(receivedValues, batteryValues)
 		}
 	}
+
+	fmt.Println("Received the following values:")
+	for k, v := range receivedValues {
+		fmt.Println(k, "=", v)
+	}
+	mqtt.Send(mqttParams, receivedValues)
 }
 
 func openWebSocket(inverterParams InverterParams) (*ws.WS) {
@@ -66,19 +80,6 @@ func openWebSocket(inverterParams InverterParams) (*ws.WS) {
 		log.Fatalln(err)
 	}
 	return webSocket
-}
-
-func fetchAndProcessPv(webSocket *ws.WS, mqttParams mqtt.MqttParams) {
-	err, values := webSocket.Pv(pvKeys)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fmt.Println("Received the following values:")
-	for k, v := range values {
-		fmt.Println(k, "=", v)
-	}
-	mqtt.Send(mqttParams, values)
 }
 
 // flags defines, parses and validates command-line flags from os.Args[1:]
