@@ -68,11 +68,13 @@ Sample Message:
 ```json
 {
   "activePower": 0,
-  "inverterTemp": 35.3,
+  "busVoltage": 0,
+  "inverterTemp": 28.5,
+  "status": "standby",
   "sunPower": 0,
-  "todayEnergy": 13.9,
-  "totalEnergy": 5850.2,
-  "totalRunningTime": 1349
+  "todayEnergy": 2.9,
+  "totalEnergy": 6582.7,
+  "totalRunningTime": 1945
 }
 ```
 
