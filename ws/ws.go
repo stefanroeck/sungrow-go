@@ -69,35 +69,50 @@ func (ws *WS) Close() {
 }
 
 // Pv fetches pv data from the inverter.
-func (ws *WS) Pv(keyList Keys) (err error, res map[string]float64) {
-	return ws.fetch("real", keyList)
+func (ws *WS) Pv() (res map[string]any, err error) {
+	return ws.fetch("real", pvKeys)
 }
 
 // Battery fetches battery data from the inverter.
-func (ws *WS) Battery(keyList Keys) (err error, res map[string]float64) {
-	return ws.fetch("real_battery", keyList)
+func (ws *WS) Battery() (res map[string]any, err error) {
+	return ws.fetch("real_battery", batteryKeys)
 }
 
 // fetch fetches data from the inverter.
-func (ws *WS) fetch(service string, keyList Keys) (err error, res map[string]float64) {
+func (ws *WS) fetch(service string, keyList Keys) (res map[string]any, err error) {
 	req := RequestReal{"de_de", ws.token, ws.uid, service, time.Now().UnixMilli()}
 	if err := websocket.JSON.Send(ws.conn, &req); err != nil {
-		return err, nil
+		return nil, err
 	}
 	resp := ResponseReal{}
 	if err := websocket.JSON.Receive(ws.conn, &resp); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	// Output values
-	result := make(map[string]float64)
+	result := make(map[string]any)
 	for _, row := range resp.ResultData.List {
-		//fmt.Printf("%s\n", row);
-		if _, exists := keyList[row.DataName]; exists {
-			val, _ := strconv.ParseFloat(row.DataValue, 64)
-			result[keyList[row.DataName]] = val
+		//fmt.Printf("%s\n", row)
+		if param, exists := keyList[row.DataName]; exists {
+			var val any
+			if param.KeyType == KeyTypes.Number {
+				if row.DataValue == "--" { // API return "--" for empty values
+					val = 0
+				} else {
+					val, err = strconv.ParseFloat(row.DataValue, 64)
+					if err != nil {
+						fmt.Printf("Cannot convert %s to number. Using as string.\n", row.DataName)
+						val = row.DataValue
+					}
+				}
+			} else if mappedValue, exists := valueMapping[row.DataValue]; exists {
+				val = mappedValue
+			} else {
+				val = row.DataValue
+			}
+			result[param.Name] = val
 		}
 	}
 
-	return nil, result
+	return result, nil
 }

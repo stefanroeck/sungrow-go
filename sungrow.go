@@ -13,11 +13,11 @@ import (
 )
 
 type InverterParams struct {
-	host      string
-	port      int
-	path      string
-	data      string
-	types     []string
+	host  string
+	port  int
+	path  string
+	data  string
+	types []string
 }
 
 func main() {
@@ -25,41 +25,41 @@ func main() {
 	fmt.Printf("Polling the inverter every %d seconds\n", sleepTimeInSeconds)
 
 	ticker := time.NewTicker(time.Duration(sleepTimeInSeconds) * time.Second)
-    done := make(chan bool)
+	done := make(chan bool)
 	defer ticker.Stop()
 
 	go func() {
 		// run immediately and then at the configured interval
-		fetchDataFromInverterAndSendToMqtt(inverterParams, mqttParams) 
+		fetchDataFromInverterAndSendToMqtt(inverterParams, mqttParams)
 		for {
 			select {
-            case <-done:
-                return
-            case <-ticker.C:
+			case <-done:
+				return
+			case <-ticker.C:
 				fetchDataFromInverterAndSendToMqtt(inverterParams, mqttParams)
-            }
+			}
 		}
 	}()
-	
+
 	// block forever
 	select {}
 }
 
 func fetchDataFromInverterAndSendToMqtt(inverterParams *InverterParams, mqttParams *mqtt.MqttParams) {
-	webSocket := openWebSocket(inverterParams)	
+	webSocket := openWebSocket(inverterParams)
 	defer webSocket.Close()
 
-	var receivedValues map[string]float64 = make(map[string]float64)
+	var receivedValues map[string]any = make(map[string]any)
 
 	for _, t := range inverterParams.types {
 		switch t {
 		case "pv":
 			fmt.Println("Fetching pv data")
-			err, pvValues := webSocket.Pv(pvKeys)
+			pvValues, err := webSocket.Pv()
 			processWsResult(receivedValues, pvValues, err)
 		case "battery":
 			fmt.Println("Fetching battery data")
-			err, batteryValues := webSocket.Battery(batteryKeys)
+			batteryValues, err := webSocket.Battery()
 			processWsResult(receivedValues, batteryValues, err)
 		}
 	}
@@ -72,7 +72,7 @@ func fetchDataFromInverterAndSendToMqtt(inverterParams *InverterParams, mqttPara
 	mqtt.Send(mqttParams, receivedValues)
 }
 
-func processWsResult(targetMap map[string]float64, resultMap map[string]float64, err error) {
+func processWsResult(targetMap map[string]any, resultMap map[string]any, err error) {
 	if err != nil {
 		log.Fatalln(err)
 		return
@@ -89,7 +89,7 @@ func processWsResult(targetMap map[string]float64, resultMap map[string]float64,
 	maps.Copy(targetMap, resultMap)
 }
 
-func openWebSocket(inverterParams *InverterParams) (*ws.WS) {
+func openWebSocket(inverterParams *InverterParams) *ws.WS {
 	webSocket := ws.NewWS(inverterParams.host, inverterParams.port, inverterParams.path)
 	if err := webSocket.Connect(); err != nil {
 		log.Fatalln(err)
@@ -143,8 +143,7 @@ func validateInverterFlags(inverterParams *InverterParams) {
 }
 
 func validateMqttFlags(params *mqtt.MqttParams) {
-	if (params.Server == "") {
+	if params.Server == "" {
 		log.Fatalln("Missing parameter mqtt.server")
 	}
 }
-

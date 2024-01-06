@@ -5,6 +5,7 @@ services:
       context: ./../
       dockerfile: ./docker/Dockerfile
     image: stefanroeck/sungrow
+    container_name: sungrow
     restart: unless-stopped
     environment:
       - SUNGROW_HOST=${SUNGROW_HOST}

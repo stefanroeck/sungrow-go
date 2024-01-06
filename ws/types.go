@@ -1,6 +1,21 @@
 package ws
 
-type Keys map[string]string
+type Keys map[string]Key
+
+type KeyType string
+
+var KeyTypes = struct {
+	String KeyType
+	Number KeyType
+}{
+	String: "string",
+	Number: "number",
+}
+
+type Key struct {
+	Name    string
+	KeyType KeyType
+}
 
 type RequestConnect struct {
 	Lang    string `json:"lang"`
