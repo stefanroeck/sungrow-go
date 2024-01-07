@@ -1,8 +1,8 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"maps"
 	"strings"
@@ -22,7 +22,7 @@ type InverterParams struct {
 
 func main() {
 	inverterParams, mqttParams, sleepTimeInSeconds := flags()
-	fmt.Printf("Polling the inverter every %d seconds\n", sleepTimeInSeconds)
+	log.Printf("Polling the inverter every %d seconds\n", sleepTimeInSeconds)
 
 	ticker := time.NewTicker(time.Duration(sleepTimeInSeconds) * time.Second)
 	done := make(chan bool)
@@ -54,18 +54,18 @@ func fetchDataFromInverterAndSendToMqtt(inverterParams *InverterParams, mqttPara
 	for _, t := range inverterParams.types {
 		switch t {
 		case "pv":
-			fmt.Println("Fetching pv data")
+			log.Println("Fetching pv data")
 			pvValues, err := webSocket.Pv()
 			processWsResult(receivedValues, pvValues, err)
 		case "battery":
-			fmt.Println("Fetching battery data")
+			log.Println("Fetching battery data")
 			batteryValues, err := webSocket.Battery()
 			processWsResult(receivedValues, batteryValues, err)
 		}
 	}
 
 	if len(receivedValues) == 0 {
-		fmt.Println("Skip sending MQTT data as no data have been returned from inverter")
+		log.Println("Skip sending MQTT data as no data have been returned from inverter")
 		return
 	}
 
@@ -78,15 +78,17 @@ func processWsResult(targetMap map[string]any, resultMap map[string]any, err err
 		return
 	}
 	if len(resultMap) == 0 {
-		fmt.Println("Warning: No data returned")
+		log.Println("Warning: No data returned")
 		return
 	}
 
-	fmt.Println("Received the following values:")
-	for k, v := range resultMap {
-		fmt.Println(k, "=", v)
-	}
+	prettyPrintMap(resultMap)
 	maps.Copy(targetMap, resultMap)
+}
+
+func prettyPrintMap(resultMap map[string]any) {
+	b, _ := json.MarshalIndent(resultMap, "", "  ")
+	log.Print("Received the following values: ", string(b))
 }
 
 func openWebSocket(inverterParams *InverterParams) *ws.WS {

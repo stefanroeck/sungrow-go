@@ -2,6 +2,7 @@ package ws
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -34,7 +35,7 @@ func (ws *WS) Connect() (err error) {
 	// Connect to WebSocket
 	origin := fmt.Sprintf("http://%s", ws.host)
 	url := fmt.Sprintf("ws://%s:%d%s", ws.host, ws.port, ws.path)
-	fmt.Printf("Connecting to %s\n", url)
+	log.Println("Connecting to", url)
 
 	ws.conn, err = websocket.Dial(url, "", origin)
 	if err != nil {
@@ -92,7 +93,7 @@ func (ws *WS) fetch(service string, keyList Keys) (res map[string]any, err error
 	// Output values
 	result := make(map[string]any)
 	for _, row := range resp.ResultData.List {
-		//fmt.Printf("%s\n", row)
+		//log.Println(row)
 		if param, exists := keyList[row.DataName]; exists {
 			var val any
 			if param.KeyType == KeyTypes.Number {
@@ -101,7 +102,7 @@ func (ws *WS) fetch(service string, keyList Keys) (res map[string]any, err error
 				} else {
 					val, err = strconv.ParseFloat(row.DataValue, 64)
 					if err != nil {
-						fmt.Printf("Cannot convert %s to number. Using as string.\n", row.DataName)
+						log.Printf("WARN: Cannot convert %s to number. Using as string.\n", row.DataName)
 						val = row.DataValue
 					}
 				}

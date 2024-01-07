@@ -3,28 +3,29 @@ package mqtt
 import (
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
+	"log"
 	"strings"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 type MqttParams struct {
-	Server string
+	Server   string
 	ClientId string
-	User   string
-	Password    string
-	Topic  string
+	User     string
+	Password string
+	Topic    string
 }
 
 func Send(params *MqttParams, data map[string]any) {
-	fmt.Printf("Sending MQTT to %s\n", params.Server)
+	log.Println("Sending mqtt message to", params.Server, "( clientId:", params.ClientId, ", topic:", params.Topic, ", user:", params.User, ")")
 	broker := mqtt.NewClientOptions().AddBroker(params.Server)
 	broker.SetClientID(params.ClientId)
-	broker.SetUsername(params.User).SetPassword(params.Password)
+	broker.SetUsername(params.User)
+	broker.SetPassword(params.Password)
 
-	if strings.HasPrefix(params.Server, "ssl")  {
-		broker.SetTLSConfig(&tls.Config{InsecureSkipVerify: true});
+	if strings.HasPrefix(params.Server, "ssl") {
+		broker.SetTLSConfig(&tls.Config{InsecureSkipVerify: true})
 	}
 
 	client := mqtt.NewClient(broker)
@@ -32,20 +33,17 @@ func Send(params *MqttParams, data map[string]any) {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
-	fmt.Println("Connected to", params.Server)
 
 	json, err := json.Marshal(data)
-	if (err != nil) {
+	if err != nil {
 		panic(err)
 	}
 	token := client.Publish(params.Topic, 0, false, string(json))
 	token.Wait()
-	if (token.Error() != nil) {
-		panic(token.Error())		
+	if token.Error() != nil {
+		panic(token.Error())
 	}
 
-	fmt.Println("Published to topic", params.Topic)
-	
 	client.Disconnect(250)
-	fmt.Println("Disconnected from", params.Server)
+	log.Println("Successfully sent mqtt message")
 }
