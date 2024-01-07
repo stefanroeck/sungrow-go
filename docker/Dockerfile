@@ -15,4 +15,4 @@ RUN mkdir /sungrow
 COPY ./bin/sungrow-go-docker /sungrow
 WORKDIR /sungrow
 
-CMD /sungrow/sungrow-go-docker -host ${SUNGROW_HOST} -port ${SUNGROW_PORT} -data ${SUNGROW_DATA} -mqtt.server ${MQTT_URL} -sleep ${SLEEP} -mqtt.topic ${MQTT_TOPIC} -mqtt.user ${MQTT_USER} -mqtt.password ${MQTT_PASSWORD} -mqtt.clientId {MQTT_CLIENTID}
+CMD /sungrow/sungrow-go-docker -host ${SUNGROW_HOST} -port ${SUNGROW_PORT} -data ${SUNGROW_DATA} -mqtt.server ${MQTT_URL} -sleep ${SLEEP} -mqtt.topic ${MQTT_TOPIC} -mqtt.user ${MQTT_USER} -mqtt.password ${MQTT_PASSWORD} -mqtt.clientId ${MQTT_CLIENTID}

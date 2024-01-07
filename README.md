@@ -67,14 +67,22 @@ Sample Message:
 
 ```json
 {
-  "activePower": 0,
-  "busVoltage": 0,
-  "inverterTemp": 28.5,
-  "status": "standby",
-  "sunPower": 0,
-  "todayEnergy": 2.9,
-  "totalEnergy": 6582.7,
-  "totalRunningTime": 1945
+  "activePower": 0.99,
+  "arrayInsulationResistance": 3000,
+  "busVoltage": 693.6,
+  "currentPhaseA": 1.5,
+  "currentPhaseB": 1.4,
+  "currentPhaseC": 1.4,
+  "gridFrequency": 49.97,
+  "inverterTemp": 34.7,
+  "status": "running",
+  "sunPower": 0.99,
+  "todayEnergy": 2.2,
+  "totalEnergy": 6584.9,
+  "totalRunningTime": 1948,
+  "voltagePhaseA": 232,
+  "voltagePhaseB": 235.2,
+  "voltagePhaseC": 236
 }
 ```
 
