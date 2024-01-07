@@ -23,6 +23,7 @@ services:
       - MQTT_URL=${MQTT_URL}
       - MQTT_USER=${MQTT_USER}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_CLIENTID=sungrow
       - SLEEP=30
 ```
 
