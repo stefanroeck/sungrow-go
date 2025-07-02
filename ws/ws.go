@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"strconv"
@@ -11,20 +12,26 @@ import (
 )
 
 type WS struct {
-	host  string
-	port  int
-	path  string
-	conn  *websocket.Conn
-	token string
-	uid   string
+	protocol string // "ws" or "wss"
+	host     string
+	port     int
+	user     string
+	password string
+	path     string
+	conn     *websocket.Conn
+	token    string
+	uid      string
 }
 
 // NewWS returns a new WS instance.
-func NewWS(host string, port int, path string) *WS {
+func NewWS(inverterParams *InverterParams) *WS {
 	ws := &WS{
-		host: host,
-		port: port,
-		path: path,
+		protocol: inverterParams.Protocol,
+		host:     inverterParams.Host,
+		port:     inverterParams.Port,
+		user:     inverterParams.User,
+		password: inverterParams.Password,
+		path:     inverterParams.Path,
 	}
 
 	return ws
@@ -33,11 +40,20 @@ func NewWS(host string, port int, path string) *WS {
 // Connect connects to the inverter using the WebSocket protocol.
 func (ws *WS) Connect() (err error) {
 	// Connect to WebSocket
-	origin := fmt.Sprintf("http://%s", ws.host)
-	url := fmt.Sprintf("ws://%s:%d%s", ws.host, ws.port, ws.path)
-	log.Println("Connecting to", url)
+	origin := fmt.Sprintf("https://%s", ws.host)
+	url := fmt.Sprintf("wss://%s:%d%s", ws.host, ws.port, ws.path)
+	log.Println("Connecting to", url, "with origin", origin)
 
-	ws.conn, err = websocket.Dial(url, "", origin)
+	config, err := websocket.NewConfig(url, origin)
+	if err != nil {
+		return err
+	}
+
+	config.TlsConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	ws.conn, err = websocket.DialConfig(config)
 	if err != nil {
 		return err
 	}
@@ -59,6 +75,27 @@ func (ws *WS) Connect() (err error) {
 		ws.Close()
 		return fmt.Errorf("connected but connection request failed")
 	}
+
+	if ws.user != "" && ws.password != "" {
+		// Login
+		reqLogin := RequestLogin{"de_de", ws.token, "login", ws.user, ws.password}
+		if err := websocket.JSON.Send(ws.conn, &reqLogin); err != nil {
+			return err
+		}
+		resLogin := ResponseLogin{}
+		if err := websocket.JSON.Receive(ws.conn, &resLogin); err != nil {
+			return err
+		}
+
+		if resLogin.ResultMsg != "success" {
+			ws.Close()
+			return fmt.Errorf("login request failed. Please check user/password params: %s", resLogin.ResultMsg)
+		}
+		log.Printf("User %s successfully logged in", ws.user)
+
+		ws.token = resLogin.ResultData.Token
+	}
+
 	return err
 }
 
@@ -88,6 +125,10 @@ func (ws *WS) fetch(service string, keyList Keys) (res map[string]any, err error
 	resp := ResponseReal{}
 	if err := websocket.JSON.Receive(ws.conn, &resp); err != nil {
 		return nil, err
+	}
+	if resp.ResultMsg != "success" {
+		ws.Close()
+		return nil, fmt.Errorf("request for service '%s' failed: %s", service, resp.ResultMsg)
 	}
 
 	// Output values
