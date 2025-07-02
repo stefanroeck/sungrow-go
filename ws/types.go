@@ -7,8 +7,6 @@ type InverterParams struct {
 	User     string
 	Password string
 	Path     string
-	Data     string
-	Types    []string
 }
 
 type Keys map[string]Key

@@ -28,14 +28,11 @@ var (
 		"I18N_COMMON_IC":                                {Name: "currentPhaseC", KeyType: KeyTypes.Number},
 		"I18N_COMMON_GRID_FREQUENCY":                    {Name: "gridFrequency", KeyType: KeyTypes.Number},
 		"I18N_COMMON_SQUARE_ARRAY_INSULATION_IMPEDANCE": {Name: "arrayInsulationResistance", KeyType: KeyTypes.Number},
-	}
-
-	batteryKeys = Keys{
-		"I18N_COMMON_BATTERY_SOC":         {Name: "batteryLevel", KeyType: KeyTypes.Number},
-		"I18N_CONFIG_KEY_3907":            {Name: "batteryCharge", KeyType: KeyTypes.Number},
-		"I18N_CONFIG_KEY_3921":            {Name: "batteryDischarge", KeyType: KeyTypes.Number},
-		"I18N_COMMON_BATTARY_HEALTH":      {Name: "batteryHealth", KeyType: KeyTypes.Number},
-		"I18N_COMMON_BATTERY_TEMPERATURE": {Name: "batteryTemp", KeyType: KeyTypes.Number},
+		"I18N_COMMON_BATTERY_SOC":                       {Name: "batteryLevel", KeyType: KeyTypes.Number},
+		"I18N_CONFIG_KEY_3907":                          {Name: "batteryCharge", KeyType: KeyTypes.Number},
+		"I18N_CONFIG_KEY_3921":                          {Name: "batteryDischarge", KeyType: KeyTypes.Number},
+		"I18N_COMMON_BATTARY_HEALTH":                    {Name: "batteryHealth", KeyType: KeyTypes.Number},
+		"I18N_COMMON_BATTERY_TEMPERATURE":               {Name: "batteryTemp", KeyType: KeyTypes.Number},
 	}
 
 	valueMapping = map[string]string{

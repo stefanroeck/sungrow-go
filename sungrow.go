@@ -5,7 +5,6 @@ import (
 	"flag"
 	"log"
 	"maps"
-	"strings"
 	"time"
 
 	"github.com/sroeck/sungrow-go/mqtt"
@@ -43,18 +42,9 @@ func fetchDataFromInverterAndSendToMqtt(inverterParams *ws.InverterParams, mqttP
 
 	var receivedValues map[string]any = make(map[string]any)
 
-	for _, t := range inverterParams.Types {
-		switch t {
-		case "pv":
-			log.Println("Fetching pv data")
-			pvValues, err := webSocket.Pv()
-			processWsResult(receivedValues, pvValues, err)
-		case "battery":
-			log.Println("Fetching battery data")
-			batteryValues, err := webSocket.Battery()
-			processWsResult(receivedValues, batteryValues, err)
-		}
-	}
+	log.Println("Fetching pv data")
+	pvValues, err := webSocket.Pv()
+	processWsResult(receivedValues, pvValues, err)
 
 	if len(receivedValues) == 0 {
 		log.Println("Skip sending MQTT data as no data have been returned from inverter")
@@ -99,7 +89,6 @@ func flags() (*ws.InverterParams, *mqtt.MqttParams, int) {
 	user := flag.String("user", "", "Username for the Sungrow inverter web ui login, e.g. admin")
 	password := flag.String("password", "", "Password the Sungrow inverter web ui login")
 	path := flag.String("path", "/ws/home/overview", "Server path from where data is requested")
-	data := flag.String("data", "pv,battery", "Select the data to be requested comma separated.\nPossible values are \"pv\" and \"battery\"")
 	mqttServer := flag.String("mqtt.server", "", "mqtt server incl. protocol, e.g. mqtt://localhost:1883. For TLS use ssl scheme, e.g. ssl://localhost:8883")
 	mqttUser := flag.String("mqtt.user", "", "mqtt user name")
 	mqttPassword := flag.String("mqtt.password", "", "mqtt password")
@@ -108,7 +97,7 @@ func flags() (*ws.InverterParams, *mqtt.MqttParams, int) {
 	sleepBetweenCalls := flag.Int("sleep", 10, "sleep time in seconds between inverter calls.")
 	flag.Parse()
 
-	inverterParams := &ws.InverterParams{Protocol: *protocol, Host: *host, Port: *port, User: *user, Password: *password, Path: *path, Data: *data}
+	inverterParams := &ws.InverterParams{Protocol: *protocol, Host: *host, Port: *port, User: *user, Password: *password, Path: *path}
 	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword}
 
 	// Validate flags
@@ -122,19 +111,6 @@ func flags() (*ws.InverterParams, *mqtt.MqttParams, int) {
 func validateInverterFlags(inverterParams *ws.InverterParams) {
 	if inverterParams.Host == "" {
 		log.Fatalln("Required parameter 'host' not set!\n'sungrow-go -help' lists available parameters.")
-	}
-
-	inverterParams.Types = strings.Split(inverterParams.Data, ",")
-	if len(inverterParams.Types) < 1 {
-		log.Fatalln("Required parameter 'data' not set or invalid value!\n'sungrow-go -help' lists available parameters and values.")
-	}
-	for _, t := range inverterParams.Types {
-		switch t {
-		case "pv":
-		case "battery":
-		default:
-			log.Fatalf("Invalid value \"%s\" for parameter 'data'!\n'sungrow-go -help' lists available parameters and values.\n", t)
-		}
 	}
 }
 

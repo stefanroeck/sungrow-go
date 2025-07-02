@@ -111,11 +111,6 @@ func (ws *WS) Pv() (res map[string]any, err error) {
 	return ws.fetch("real", pvKeys)
 }
 
-// Battery fetches battery data from the inverter.
-func (ws *WS) Battery() (res map[string]any, err error) {
-	return ws.fetch("real_battery", batteryKeys)
-}
-
 // fetch fetches data from the inverter.
 func (ws *WS) fetch(service string, keyList Keys) (res map[string]any, err error) {
 	req := RequestReal{"de_de", ws.token, ws.uid, service, time.Now().UnixMilli()}
