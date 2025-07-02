@@ -1,5 +1,14 @@
 package ws
 
+type InverterParams struct {
+	Protocol string
+	Host     string
+	Port     int
+	User     string
+	Password string
+	Path     string
+}
+
 type Keys map[string]Key
 
 type KeyType string
@@ -23,6 +32,24 @@ type RequestConnect struct {
 	Service string `json:"service"`
 }
 type ResponseConnect struct {
+	ResultCode int    `json:"result_code"`
+	ResultMsg  string `json:"result_msg"`
+	ResultData struct {
+		Service     string
+		Token       string
+		Uid         int
+		TipsDisable int `json:"tips_disable"`
+	} `json:"result_data"`
+}
+
+type RequestLogin struct {
+	Lang     string `json:"lang"`
+	Token    string `json:"token"`
+	Service  string `json:"service"`
+	Username string `json:"username"`
+	Passwd   string `json:"passwd"`
+}
+type ResponseLogin struct {
 	ResultCode int    `json:"result_code"`
 	ResultMsg  string `json:"result_msg"`
 	ResultData struct {

@@ -5,20 +5,11 @@ import (
 	"flag"
 	"log"
 	"maps"
-	"strings"
 	"time"
 
 	"github.com/sroeck/sungrow-go/mqtt"
 	"github.com/sroeck/sungrow-go/ws"
 )
-
-type InverterParams struct {
-	host  string
-	port  int
-	path  string
-	data  string
-	types []string
-}
 
 func main() {
 	inverterParams, mqttParams, sleepTimeInSeconds := flags()
@@ -45,24 +36,15 @@ func main() {
 	select {}
 }
 
-func fetchDataFromInverterAndSendToMqtt(inverterParams *InverterParams, mqttParams *mqtt.MqttParams) {
+func fetchDataFromInverterAndSendToMqtt(inverterParams *ws.InverterParams, mqttParams *mqtt.MqttParams) {
 	webSocket := openWebSocket(inverterParams)
 	defer webSocket.Close()
 
 	var receivedValues map[string]any = make(map[string]any)
 
-	for _, t := range inverterParams.types {
-		switch t {
-		case "pv":
-			log.Println("Fetching pv data")
-			pvValues, err := webSocket.Pv()
-			processWsResult(receivedValues, pvValues, err)
-		case "battery":
-			log.Println("Fetching battery data")
-			batteryValues, err := webSocket.Battery()
-			processWsResult(receivedValues, batteryValues, err)
-		}
-	}
+	log.Println("Fetching pv data")
+	pvValues, err := webSocket.Pv()
+	processWsResult(receivedValues, pvValues, err)
 
 	if len(receivedValues) == 0 {
 		log.Println("Skip sending MQTT data as no data have been returned from inverter")
@@ -82,7 +64,7 @@ func processWsResult(targetMap map[string]any, resultMap map[string]any, err err
 		return
 	}
 
-	prettyPrintMap(resultMap)
+	//prettyPrintMap(resultMap)
 	maps.Copy(targetMap, resultMap)
 }
 
@@ -91,8 +73,8 @@ func prettyPrintMap(resultMap map[string]any) {
 	log.Print("Received the following values: ", string(b))
 }
 
-func openWebSocket(inverterParams *InverterParams) *ws.WS {
-	webSocket := ws.NewWS(inverterParams.host, inverterParams.port, inverterParams.path)
+func openWebSocket(inverterParams *ws.InverterParams) *ws.WS {
+	webSocket := ws.NewWS(inverterParams)
 	if err := webSocket.Connect(); err != nil {
 		log.Fatalln(err)
 	}
@@ -100,12 +82,13 @@ func openWebSocket(inverterParams *InverterParams) *ws.WS {
 }
 
 // flags defines, parses and validates command-line flags from os.Args[1:]
-func flags() (*InverterParams, *mqtt.MqttParams, int) {
-
+func flags() (*ws.InverterParams, *mqtt.MqttParams, int) {
+	protocol := flag.String("protocol", "ws", "WebSocket protocol to be used, either \"ws\" or \"wss\"")
 	host := flag.String("host", "", "Hostname/IP address of the Sungrow inverter")
 	port := flag.Int("port", 8082, "WebSocket port of the Sungrow inverter")
+	user := flag.String("user", "", "Username for the Sungrow inverter web ui login, e.g. admin")
+	password := flag.String("password", "", "Password the Sungrow inverter web ui login")
 	path := flag.String("path", "/ws/home/overview", "Server path from where data is requested")
-	data := flag.String("data", "pv,battery", "Select the data to be requested comma separated.\nPossible values are \"pv\" and \"battery\"")
 	mqttServer := flag.String("mqtt.server", "", "mqtt server incl. protocol, e.g. mqtt://localhost:1883. For TLS use ssl scheme, e.g. ssl://localhost:8883")
 	mqttUser := flag.String("mqtt.user", "", "mqtt user name")
 	mqttPassword := flag.String("mqtt.password", "", "mqtt password")
@@ -114,7 +97,7 @@ func flags() (*InverterParams, *mqtt.MqttParams, int) {
 	sleepBetweenCalls := flag.Int("sleep", 10, "sleep time in seconds between inverter calls.")
 	flag.Parse()
 
-	inverterParams := &InverterParams{host: *host, port: *port, path: *path, data: *data}
+	inverterParams := &ws.InverterParams{Protocol: *protocol, Host: *host, Port: *port, User: *user, Password: *password, Path: *path}
 	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword}
 
 	// Validate flags
@@ -125,22 +108,9 @@ func flags() (*InverterParams, *mqtt.MqttParams, int) {
 }
 
 // validateInverterFlags validates all flags
-func validateInverterFlags(inverterParams *InverterParams) {
-	if inverterParams.host == "" {
+func validateInverterFlags(inverterParams *ws.InverterParams) {
+	if inverterParams.Host == "" {
 		log.Fatalln("Required parameter 'host' not set!\n'sungrow-go -help' lists available parameters.")
-	}
-
-	inverterParams.types = strings.Split(inverterParams.data, ",")
-	if len(inverterParams.types) < 1 {
-		log.Fatalln("Required parameter 'data' not set or invalid value!\n'sungrow-go -help' lists available parameters and values.")
-	}
-	for _, t := range inverterParams.types {
-		switch t {
-		case "pv":
-		case "battery":
-		default:
-			log.Fatalf("Invalid value \"%s\" for parameter 'data'!\n'sungrow-go -help' lists available parameters and values.\n", t)
-		}
 	}
 }
 

@@ -23,6 +23,7 @@ services:
       - MQTT_URL=${MQTT_URL}
       - MQTT_USER=${MQTT_USER}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_CLIENTID=sungrow
       - SLEEP=30
 ```
 
@@ -32,7 +33,7 @@ services:
 
 ```bash
 $ go install .
-$ go build ./bin
+$ go build -o ./bin/
 ```
 
 ### Build for Rasperry PI
@@ -58,8 +59,11 @@ $ sungrow-go -help
 Basic usage with ip address of your inverter (e.g. `192.168.2.100`)
 
 ```bash
-$ sungrow-go -host 192.168.2.100 -mqtt.server mqtt://test.mosquitto.org:1883 -mqtt.topic honk/demo
+$ sungrow-go -protocol wss -host 192.168.2.100 -user admin -password secret -mqtt.server mqtt://test.mosquitto.org:1883 -mqtt.topic honk/demo
 ```
+For newer firmware versions (around 2024/2025): 
+- Authentication using user/password is required
+- Protocol needs to be wss instead of ws (TLS)
 
 # MQTT
 
