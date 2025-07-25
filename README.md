@@ -16,14 +16,20 @@ Written in GoLang, based on https://github.com/nItroTools/sungrow-go.
 version: "3.9"
 services:
   sungrow-go:
-    image: stefanroeck/sungrow
+    image: stefanroeck/sungrow:latest
     restart: unless-stopped
     environment:
+      - SUNGROW_PROTOCOL=wss
       - SUNGROW_HOST=${SUNGROW_HOST}
+      - SUNGROW_PORT=443
+      - SUNGROW_USER=admin
+      - SUNGROW_PASSWORD=secret
       - MQTT_URL=${MQTT_URL}
       - MQTT_USER=${MQTT_USER}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_TOPIC="sungrow/stats"
       - MQTT_CLIENTID=sungrow
+      - MQTT_SKIP_SSL_VERIFY=false
       - SLEEP=30
 ```
 

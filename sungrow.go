@@ -19,15 +19,18 @@ func main() {
 	done := make(chan bool)
 	defer ticker.Stop()
 
+	mqttClient := mqtt.NewMqttClient(mqttParams)
+	defer mqttClient.Close()
+
 	go func() {
 		// run immediately and then at the configured interval
-		fetchDataFromInverterAndSendToMqtt(inverterParams, mqttParams)
+		fetchDataFromInverterAndSendToMqtt(inverterParams, mqttClient)
 		for {
 			select {
 			case <-done:
 				return
 			case <-ticker.C:
-				fetchDataFromInverterAndSendToMqtt(inverterParams, mqttParams)
+				fetchDataFromInverterAndSendToMqtt(inverterParams, mqttClient)
 			}
 		}
 	}()
@@ -36,7 +39,7 @@ func main() {
 	select {}
 }
 
-func fetchDataFromInverterAndSendToMqtt(inverterParams *ws.InverterParams, mqttParams *mqtt.MqttParams) {
+func fetchDataFromInverterAndSendToMqtt(inverterParams *ws.InverterParams, mqttClient *mqtt.MqttClient) {
 	webSocket := openWebSocket(inverterParams)
 	defer webSocket.Close()
 
@@ -51,7 +54,7 @@ func fetchDataFromInverterAndSendToMqtt(inverterParams *ws.InverterParams, mqttP
 		return
 	}
 
-	mqtt.Send(mqttParams, receivedValues)
+	mqttClient.Send(receivedValues)
 }
 
 func processWsResult(targetMap map[string]any, resultMap map[string]any, err error) {
@@ -94,11 +97,12 @@ func flags() (*ws.InverterParams, *mqtt.MqttParams, int) {
 	mqttPassword := flag.String("mqtt.password", "", "mqtt password")
 	mqttClientId := flag.String("mqtt.clientId", "", "mqtt clientId that is used for publishing")
 	mqttTopic := flag.String("mqtt.topic", "topic", "mqtt topic to which the data are published")
+	mqttSkipSSLVerify := flag.Bool("mqtt.skipSSLVerify", false, "Skip SSL verification for MQTT connection")
 	sleepBetweenCalls := flag.Int("sleep", 10, "sleep time in seconds between inverter calls.")
 	flag.Parse()
 
 	inverterParams := &ws.InverterParams{Protocol: *protocol, Host: *host, Port: *port, User: *user, Password: *password, Path: *path}
-	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword}
+	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword, SkipSSLVerify: *mqttSkipSSLVerify}
 
 	// Validate flags
 	validateInverterFlags(inverterParams)
