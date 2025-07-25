@@ -97,11 +97,12 @@ func flags() (*ws.InverterParams, *mqtt.MqttParams, int) {
 	mqttPassword := flag.String("mqtt.password", "", "mqtt password")
 	mqttClientId := flag.String("mqtt.clientId", "", "mqtt clientId that is used for publishing")
 	mqttTopic := flag.String("mqtt.topic", "topic", "mqtt topic to which the data are published")
+	mqttSkipSSLVerify := flag.Bool("mqtt.skipSSLVerify", false, "Skip SSL verification for MQTT connection")
 	sleepBetweenCalls := flag.Int("sleep", 10, "sleep time in seconds between inverter calls.")
 	flag.Parse()
 
 	inverterParams := &ws.InverterParams{Protocol: *protocol, Host: *host, Port: *port, User: *user, Password: *password, Path: *path}
-	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword}
+	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword, SkipSSLVerify: *mqttSkipSSLVerify}
 
 	// Validate flags
 	validateInverterFlags(inverterParams)

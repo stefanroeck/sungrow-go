@@ -3,6 +3,7 @@ package mqtt
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -11,11 +12,20 @@ import (
 )
 
 type MqttParams struct {
-	Server   string
-	ClientId string
-	User     string
-	Password string
-	Topic    string
+	Server        string
+	ClientId      string
+	User          string
+	Password      string
+	Topic         string
+	SkipSSLVerify bool
+}
+
+// override to not expose password
+func (p MqttParams) String() string {
+	return fmt.Sprintf(
+		"MqttParams{Server: %s, ClientId: %s, User: %s, Topic: %s, SkipSSLVerify: %v}",
+		p.Server, p.ClientId, p.User, p.Topic, p.SkipSSLVerify,
+	)
 }
 
 type MqttClient struct {
@@ -24,7 +34,7 @@ type MqttClient struct {
 }
 
 func NewMqttClient(params *MqttParams) *MqttClient {
-	log.Println("Connecting to MQTT broker at", params.Server)
+	log.Println("Connecting to MQTT broker with", params)
 
 	opts := mqtt.NewClientOptions().AddBroker(params.Server).
 		SetClientID(params.ClientId).
@@ -43,7 +53,7 @@ func NewMqttClient(params *MqttParams) *MqttClient {
 	}
 
 	if strings.HasPrefix(params.Server, "ssl") {
-		opts.SetTLSConfig(&tls.Config{InsecureSkipVerify: true})
+		opts.SetTLSConfig(&tls.Config{InsecureSkipVerify: params.SkipSSLVerify})
 	}
 
 	client := mqtt.NewClient(opts)
