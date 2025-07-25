@@ -19,15 +19,18 @@ func main() {
 	done := make(chan bool)
 	defer ticker.Stop()
 
+	mqttClient := mqtt.NewMqttClient(mqttParams)
+	defer mqttClient.Close()
+
 	go func() {
 		// run immediately and then at the configured interval
-		fetchDataFromInverterAndSendToMqtt(inverterParams, mqttParams)
+		fetchDataFromInverterAndSendToMqtt(inverterParams, mqttClient)
 		for {
 			select {
 			case <-done:
 				return
 			case <-ticker.C:
-				fetchDataFromInverterAndSendToMqtt(inverterParams, mqttParams)
+				fetchDataFromInverterAndSendToMqtt(inverterParams, mqttClient)
 			}
 		}
 	}()
@@ -36,7 +39,7 @@ func main() {
 	select {}
 }
 
-func fetchDataFromInverterAndSendToMqtt(inverterParams *ws.InverterParams, mqttParams *mqtt.MqttParams) {
+func fetchDataFromInverterAndSendToMqtt(inverterParams *ws.InverterParams, mqttClient *mqtt.MqttClient) {
 	webSocket := openWebSocket(inverterParams)
 	defer webSocket.Close()
 
@@ -51,7 +54,7 @@ func fetchDataFromInverterAndSendToMqtt(inverterParams *ws.InverterParams, mqttP
 		return
 	}
 
-	mqtt.Send(mqttParams, receivedValues)
+	mqttClient.Send(receivedValues)
 }
 
 func processWsResult(targetMap map[string]any, resultMap map[string]any, err error) {
