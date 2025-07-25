@@ -2,35 +2,36 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"log"
 	"maps"
+	"os"
 	"time"
 
 	"github.com/sroeck/sungrow-go/mqtt"
+	"github.com/sroeck/sungrow-go/params"
 	"github.com/sroeck/sungrow-go/ws"
 )
 
 func main() {
-	inverterParams, mqttParams, sleepTimeInSeconds := flags()
-	log.Printf("Polling the inverter every %d seconds\n", sleepTimeInSeconds)
+	cfg := params.ParseFlags(os.Args[1:])
+	log.Printf("Polling the inverter every %d seconds\n", cfg.SleepBetweenCallsSecs)
 
-	ticker := time.NewTicker(time.Duration(sleepTimeInSeconds) * time.Second)
+	ticker := time.NewTicker(time.Duration(cfg.SleepBetweenCallsSecs) * time.Second)
 	done := make(chan bool)
 	defer ticker.Stop()
 
-	mqttClient := mqtt.NewMqttClient(mqttParams)
+	mqttClient := mqtt.NewMqttClient(cfg.MqttParams)
 	defer mqttClient.Close()
 
 	go func() {
 		// run immediately and then at the configured interval
-		fetchDataFromInverterAndSendToMqtt(inverterParams, mqttClient)
+		fetchDataFromInverterAndSendToMqtt(cfg.InverterParams, mqttClient)
 		for {
 			select {
 			case <-done:
 				return
 			case <-ticker.C:
-				fetchDataFromInverterAndSendToMqtt(inverterParams, mqttClient)
+				fetchDataFromInverterAndSendToMqtt(cfg.InverterParams, mqttClient)
 			}
 		}
 	}()
@@ -82,44 +83,4 @@ func openWebSocket(inverterParams *ws.InverterParams) *ws.WS {
 		log.Fatalln(err)
 	}
 	return webSocket
-}
-
-// flags defines, parses and validates command-line flags from os.Args[1:]
-func flags() (*ws.InverterParams, *mqtt.MqttParams, int) {
-	protocol := flag.String("protocol", "ws", "WebSocket protocol to be used, either \"ws\" or \"wss\"")
-	host := flag.String("host", "", "Hostname/IP address of the Sungrow inverter")
-	port := flag.Int("port", 8082, "WebSocket port of the Sungrow inverter")
-	user := flag.String("user", "", "Username for the Sungrow inverter web ui login, e.g. admin")
-	password := flag.String("password", "", "Password the Sungrow inverter web ui login")
-	path := flag.String("path", "/ws/home/overview", "Server path from where data is requested")
-	mqttServer := flag.String("mqtt.server", "", "mqtt server incl. protocol, e.g. mqtt://localhost:1883. For TLS use ssl scheme, e.g. ssl://localhost:8883")
-	mqttUser := flag.String("mqtt.user", "", "mqtt user name")
-	mqttPassword := flag.String("mqtt.password", "", "mqtt password")
-	mqttClientId := flag.String("mqtt.clientId", "", "mqtt clientId that is used for publishing")
-	mqttTopic := flag.String("mqtt.topic", "topic", "mqtt topic to which the data are published")
-	mqttSkipSSLVerify := flag.Bool("mqtt.skipSSLVerify", false, "Skip SSL verification for MQTT connection")
-	sleepBetweenCalls := flag.Int("sleep", 10, "sleep time in seconds between inverter calls.")
-	flag.Parse()
-
-	inverterParams := &ws.InverterParams{Protocol: *protocol, Host: *host, Port: *port, User: *user, Password: *password, Path: *path}
-	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword, SkipSSLVerify: *mqttSkipSSLVerify}
-
-	// Validate flags
-	validateInverterFlags(inverterParams)
-	validateMqttFlags(mqttParams)
-
-	return inverterParams, mqttParams, *sleepBetweenCalls
-}
-
-// validateInverterFlags validates all flags
-func validateInverterFlags(inverterParams *ws.InverterParams) {
-	if inverterParams.Host == "" {
-		log.Fatalln("Required parameter 'host' not set!\n'sungrow-go -help' lists available parameters.")
-	}
-}
-
-func validateMqttFlags(params *mqtt.MqttParams) {
-	if params.Server == "" {
-		log.Fatalln("Missing parameter mqtt.server")
-	}
 }
