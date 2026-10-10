@@ -36,7 +36,8 @@ var (
 	}
 
 	valueMapping = map[string]string{
-		"I18N_COMMON_STANDBY":    "standby",
-		"I18N_COMMON_STATUS_RUN": "running",
+		"I18N_COMMON_STANDBY":           "standby",
+		"I18N_COMMON_STATUS_RUN":        "running",
+		"I18N_COMMON_ON_GRID_OPERATION": "on grid operation",
 	}
 )
