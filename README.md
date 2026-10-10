@@ -38,11 +38,11 @@ services:
 - Checkout Repo
 
 ```bash
-$ go install .
-$ go build -o ./bin/
+go install .
+go build -o ./bin/
 ```
 
-### Build for Rasperry PI
+### Build for Raspberry Pi
 
 ```bash
 env GOOS=linux GOARCH=arm GOARM=7 go build -o ./bin/sungrow-go-raspi
