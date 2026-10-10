@@ -1,6 +1,6 @@
 # Agent instructions
 
-- For all code changes, run the build and tests before considering the work complete.
+- Run the build and tests for source-code changes before considering the work complete. Do not run them for documentation-only or other non-source changes (for example, README or agent-instruction updates).
 - From the repository root, build all packages with `go build -o ./bin/`.
 - From the repository root, run the full test suite with `go test ./...`.
 - Some packages currently have no test files; `[no test files]` is expected, and all test packages must pass.
