@@ -10,6 +10,14 @@ Written in GoLang, based on https://github.com/nItroTools/sungrow-go.
 
 - Pull image from DockerHub manually or via Docker-Compose file: https://hub.docker.com/r/stefanroeck/sungrow
 
+### Build and run this repository with Docker Compose
+
+The compose file builds the application from the repository and reads its configuration from `docker/.env`. Set the inverter and MQTT values in that file, then run these commands from the repository root:
+
+```bash
+docker compose -f docker/docker-compose.yml up --build
+```
+
 **docker-compose.yml**:
 
 ```yaml
