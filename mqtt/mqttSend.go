@@ -9,6 +9,7 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/sroeck/sungrow-go/inverter"
 )
 
 type MqttParams struct {
@@ -67,7 +68,7 @@ func NewMqttClient(params *MqttParams) *MqttClient {
 	}
 }
 
-func (m *MqttClient) Send(data map[string]any) {
+func (m *MqttClient) Send(data map[inverter.DataKey]any) {
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		panic(err)

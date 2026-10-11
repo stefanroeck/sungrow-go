@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/sroeck/sungrow-go/inverter"
 	"github.com/sroeck/sungrow-go/mqtt"
 	"github.com/sroeck/sungrow-go/params"
 	"github.com/sroeck/sungrow-go/transport"
@@ -52,7 +53,7 @@ func fetchDataFromInverterAndSendToMqtt(cfg *params.Config, mqttClient *mqtt.Mqt
 	}
 	defer client.Close()
 
-	var receivedValues map[string]any = make(map[string]any)
+	receivedValues := make(map[inverter.DataKey]any)
 
 	log.Println("Fetching pv data")
 	pvValues, err := client.Pv()
@@ -60,7 +61,7 @@ func fetchDataFromInverterAndSendToMqtt(cfg *params.Config, mqttClient *mqtt.Mqt
 		log.Printf("Failed to fetch inverter data; will retry next poll: %v", err)
 		return
 	}
-	processWsResult(receivedValues, pvValues)
+	processPvResult(receivedValues, pvValues)
 
 	if len(receivedValues) == 0 {
 		log.Println("Skip sending MQTT data as no data have been returned from inverter")
@@ -70,7 +71,7 @@ func fetchDataFromInverterAndSendToMqtt(cfg *params.Config, mqttClient *mqtt.Mqt
 	mqttClient.Send(receivedValues)
 }
 
-func processWsResult(targetMap map[string]any, resultMap map[string]any) {
+func processPvResult(targetMap map[inverter.DataKey]any, resultMap map[inverter.DataKey]any) {
 	if len(resultMap) == 0 {
 		log.Println("Warning: No data returned")
 		return
@@ -80,7 +81,7 @@ func processWsResult(targetMap map[string]any, resultMap map[string]any) {
 	maps.Copy(targetMap, resultMap)
 }
 
-func prettyPrintMap(resultMap map[string]any) {
+func prettyPrintMap(resultMap map[inverter.DataKey]any) {
 	b, _ := json.MarshalIndent(resultMap, "", "  ")
 	log.Print("Received the following values: ", string(b))
 }
