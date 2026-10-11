@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/aldas/go-modbus-client v0.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 )

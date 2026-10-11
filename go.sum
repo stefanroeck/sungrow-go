@@ -1,3 +1,5 @@
+github.com/aldas/go-modbus-client v0.6.0 h1:9sv+sZ1gS8UX2aw8Z/UxjhBPcRii3NJwwIrKU5ZlNdU=
+github.com/aldas/go-modbus-client v0.6.0/go.mod h1:YkzUVtIwf4wD2nQgX5wqmGaSQvRW0R2LyLcOYe+AW8E=
 github.com/eclipse/paho.mqtt.golang v1.5.1 h1:/VSOv3oDLlpqR2Epjn1Q7b2bSTplJIeV2ISgCl2W7nE=
 github.com/eclipse/paho.mqtt.golang v1.5.1/go.mod h1:1/yJCneuyOoCOzKSsOTUc0AJfpsItBGWvYpBLimhArU=
 github.com/google/uuid v1.5.0 h1:1p67kYwdtXjb0gL0BPiP1Av9wiZPo5A8z2cWkTZ+eyU=
