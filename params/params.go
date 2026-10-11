@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/sroeck/sungrow-go/inverter"
+	"github.com/sroeck/sungrow-go/modbus"
 	"github.com/sroeck/sungrow-go/mqtt"
 	"github.com/sroeck/sungrow-go/ws"
 )
@@ -13,6 +14,7 @@ import (
 type Config struct {
 	InverterParams        *inverter.Params
 	WebSocketParams       *ws.WebSocketParams
+	ModbusParams          *modbus.Params
 	Transport             string
 	MqttParams            *mqtt.MqttParams
 	SleepBetweenCallsSecs int
@@ -27,7 +29,9 @@ func ParseFlags(args []string) *Config {
 	user := fs.String("user", "", "Username for the Sungrow inverter web ui login, e.g. admin")
 	password := fs.String("password", "", "Password the Sungrow inverter web ui login")
 	path := fs.String("path", "/ws/home/overview", "Server path from where data is requested")
-	transport := fs.String("transport", "websocket", "Inverter communication transport, currently \"websocket\"")
+	transport := fs.String("transport", "websocket", "Inverter communication transport: \"websocket\" or \"modbus\"")
+	modbusPort := fs.Int("modbus.port", 502, "Modbus TCP port")
+	modbusUnitID := fs.Int("modbus.unitId", 1, "Modbus server unit ID")
 	mqttServer := fs.String("mqtt.server", "", "mqtt server incl. protocol, e.g. mqtt://localhost:1883. For TLS use ssl scheme, e.g. ssl://localhost:8883")
 	mqttUser := fs.String("mqtt.user", "", "mqtt user name")
 	mqttPassword := fs.String("mqtt.password", "", "mqtt password")
@@ -40,9 +44,9 @@ func ParseFlags(args []string) *Config {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	inverterParams := &inverter.Params{Host: *host}
 	webSocketParams := &ws.WebSocketParams{Protocol: *protocol, Port: *port, User: *user, Password: *password, Path: *path}
+	modbusParams := &modbus.Params{Host: *host, Port: *modbusPort, UnitID: uint8(*modbusUnitID)}
 	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword, SkipSSLVerify: *mqttSkipSSLVerify}
 
 	// You can validate here or return errors if you want, skipping for brevity
@@ -52,6 +56,7 @@ func ParseFlags(args []string) *Config {
 	return &Config{
 		InverterParams:        inverterParams,
 		WebSocketParams:       webSocketParams,
+		ModbusParams:          modbusParams,
 		Transport:             *transport,
 		MqttParams:            mqttParams,
 		SleepBetweenCallsSecs: *sleepBetweenCalls,

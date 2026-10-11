@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/sroeck/sungrow-go/inverter"
+	"github.com/sroeck/sungrow-go/modbus"
 	"github.com/sroeck/sungrow-go/ws"
 )
 
@@ -14,12 +15,14 @@ type Kind string
 
 const (
 	WebSocket Kind = "websocket"
+	Modbus    Kind = "modbus"
 )
 
 // Params groups settings for constructing a transport client.
 type Params struct {
 	Inverter  *inverter.Params
 	WebSocket *ws.WebSocketParams
+	Modbus    *modbus.Params
 }
 
 // New constructs and connects a client for the selected transport.
@@ -34,6 +37,16 @@ func New(kind Kind, params Params) (inverter.Client, error) {
 			return nil, fmt.Errorf("WebSocket parameters are required for %q transport", kind)
 		}
 		client, err := ws.Open(params.Inverter, params.WebSocket)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("Constructed inverter client: transport=%s, type=%T", kind, client)
+		return client, nil
+	case Modbus:
+		if params.Modbus == nil {
+			return nil, fmt.Errorf("Modbus parameters are required for %q transport", kind)
+		}
+		client, err := modbus.Open(params.Modbus)
 		if err != nil {
 			return nil, err
 		}

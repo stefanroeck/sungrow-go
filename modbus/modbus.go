@@ -1,0 +1,156 @@
+// Package modbus implements the SG15RT Modbus TCP inverter transport.
+package modbus
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	modbusclient "github.com/aldas/go-modbus-client"
+	"github.com/aldas/go-modbus-client/packet"
+	"github.com/sroeck/sungrow-go/inverter"
+)
+
+// Reference addresses in the README use mbpoll's one-based notation. The
+// client library uses zero-based PDU addresses, so convert at request creation.
+const firstRegisterReference uint16 = 5003
+const registerCount uint16 = 147 // through reference 5149, inclusive
+
+type Client struct {
+	client *modbusclient.Client
+	params Params
+}
+
+// Open creates and connects an SG15RT Modbus TCP client.
+func Open(params *Params) (inverter.Client, error) {
+	if params == nil {
+		return nil, fmt.Errorf("Modbus parameters are required")
+	}
+	if params.Host == "" {
+		return nil, fmt.Errorf("Modbus host is required")
+	}
+	if params.Port < 1 || params.Port > 65535 {
+		return nil, fmt.Errorf("Modbus port must be between 1 and 65535")
+	}
+	client := &Client{client: modbusclient.NewTCPClient(), params: *params}
+	if err := client.Connect(); err != nil {
+		client.Close()
+		return nil, err
+	}
+	return client, nil
+}
+
+// Connect establishes the Modbus TCP connection.
+func (c *Client) Connect() error {
+	address := fmt.Sprintf("%s:%d", c.params.Host, c.params.Port)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := c.client.Connect(ctx, address); err != nil {
+		return fmt.Errorf("connect to Modbus inverter %s: %w", address, err)
+	}
+	return nil
+}
+
+// Close closes the Modbus TCP connection.
+func (c *Client) Close() {
+	if c.client != nil {
+		if err := c.client.Close(); err != nil {
+			log.Printf("close Modbus connection: %v", err)
+		}
+	}
+}
+
+// Pv reads the SG15RT read-only FC04 register range and maps values to the
+// application keys used by the WebSocket transport.
+func (c *Client) Pv() (map[string]any, error) {
+	startAddress := firstRegisterReference - 1
+	req, err := packet.NewReadInputRegistersRequestTCP(c.params.UnitID, startAddress, registerCount)
+	if err != nil {
+		return nil, fmt.Errorf("build SG15RT register request: %w", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := c.client.Do(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("read SG15RT input registers: %w", err)
+	}
+	readResp, ok := resp.(*packet.ReadInputRegistersResponseTCP)
+	if !ok {
+		return nil, fmt.Errorf("unexpected Modbus response type %T", resp)
+	}
+	registers, err := readResp.AsRegisters(startAddress)
+	if err != nil {
+		return nil, fmt.Errorf("decode SG15RT input registers: %w", err)
+	}
+
+	// Register pairs use low word first per the SG15RT README mapping.
+	registers.WithByteOrder(packet.BigEndianLowWordFirst)
+	return decodeValues(registers)
+}
+
+func decodeValues(registers *packet.Registers) (map[string]any, error) {
+	u16 := func(reference uint16) (uint16, error) { return registers.Uint16(reference - 1) }
+	u32 := func(reference uint16) (uint32, error) { return registers.Uint32(reference - 1) }
+	values := make(map[string]any, 16)
+	put16 := func(key string, reference uint16, scale float64) error {
+		raw, err := u16(reference)
+		if err != nil {
+			return fmt.Errorf("decode %s at reference %d: %w", key, reference, err)
+		}
+		values[key] = float64(raw) / scale
+		return nil
+	}
+	put32 := func(key string, reference uint16, scale float64) error {
+		raw, err := u32(reference)
+		if err != nil {
+			return fmt.Errorf("decode %s at reference %d: %w", key, reference, err)
+		}
+		values[key] = float64(raw) / scale
+		return nil
+	}
+	for _, read := range []func() error{
+		func() error { return put16("todayEnergy", 5003, 10) },
+		func() error { return put32("totalEnergy", 5004, 1) },
+		func() error { return put32("totalRunningTime", 5006, 1) },
+		func() error {
+			raw, err := u16(5008)
+			if err != nil {
+				return fmt.Errorf("decode inverterTemp at reference 5008: %w", err)
+			}
+			values["inverterTemp"] = float64(int16(raw)) / 10
+			return nil
+		},
+		func() error { return put32("sunPower", 5017, 1000) },
+		func() error { return put16("voltagePhaseA", 5019, 10) },
+		func() error { return put16("voltagePhaseB", 5020, 10) },
+		func() error { return put16("voltagePhaseC", 5021, 10) },
+		func() error { return put16("currentPhaseA", 5022, 10) },
+		func() error { return put16("currentPhaseB", 5023, 10) },
+		func() error { return put16("currentPhaseC", 5024, 10) },
+		func() error { return put32("activePower", 5031, 1000) },
+		func() error { return put16("gridFrequency", 5148, 100) },
+		func() error {
+			raw, err := u16(5038)
+			if err != nil {
+				return fmt.Errorf("decode status at reference 5038: %w", err)
+			}
+			values["status"] = statusString(raw)
+			return nil
+		},
+		func() error { return put16("arrayInsulationResistance", 5071, 1) },
+		func() error { return put16("busVoltage", 5147, 10) },
+	} {
+		if err := read(); err != nil {
+			return nil, err
+		}
+	}
+	return values, nil
+}
+
+func statusString(code uint16) string {
+	if code == 0 {
+		return "on grid operation"
+	}
+	return fmt.Sprintf("unknown (%d)", code)
+}

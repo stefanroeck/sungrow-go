@@ -44,6 +44,7 @@ func fetchDataFromInverterAndSendToMqtt(cfg *params.Config, mqttClient *mqtt.Mqt
 	client, err := transport.New(transport.Kind(cfg.Transport), transport.Params{
 		Inverter:  cfg.InverterParams,
 		WebSocket: cfg.WebSocketParams,
+		Modbus:    cfg.ModbusParams,
 	})
 	if err != nil {
 		log.Fatalln(err)

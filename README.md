@@ -27,11 +27,14 @@ services:
     image: stefanroeck/sungrow:latest
     restart: unless-stopped
     environment:
+      - SUNGROW_TRANSPORT=websocket
       - SUNGROW_PROTOCOL=wss
       - SUNGROW_HOST=${SUNGROW_HOST}
       - SUNGROW_PORT=443
       - SUNGROW_USER=admin
       - SUNGROW_PASSWORD=secret
+      - SUNGROW_MODBUS_PORT=502
+      - SUNGROW_MODBUS_UNIT_ID=1
       - MQTT_URL=${MQTT_URL}
       - MQTT_USER=${MQTT_USER}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
@@ -73,11 +76,13 @@ $ sungrow-go -help
 Basic usage with ip address of your inverter (e.g. `192.168.2.100`)
 
 ```bash
-$ sungrow-go -protocol wss -host 192.168.2.100 -user admin -password secret -mqtt.server mqtt://test.mosquitto.org:1883 -mqtt.topic honk/demo
+$ sungrow-go -transport websocket -protocol wss -host 192.168.2.100 -user admin -password secret -mqtt.server mqtt://test.mosquitto.org:1883 -mqtt.topic honk/demo
 ```
 For newer firmware versions (around 2024/2025): 
 - Authentication using user/password is required
 - Protocol needs to be wss instead of ws (TLS)
+
+Select the SG15RT Modbus TCP transport with `-transport modbus`. It uses port 502 and unit ID 1 by default; override these with `-modbus.port` and `-modbus.unitId`.
 
 # MQTT
 
