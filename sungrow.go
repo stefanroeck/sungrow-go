@@ -15,6 +15,7 @@ import (
 
 func main() {
 	cfg := params.ParseFlags(os.Args[1:])
+	log.Printf("Using inverter transport: %s", cfg.Transport)
 	log.Printf("Polling the inverter every %d seconds\n", cfg.SleepBetweenCallsSecs)
 
 	ticker := time.NewTicker(time.Duration(cfg.SleepBetweenCallsSecs) * time.Second)
