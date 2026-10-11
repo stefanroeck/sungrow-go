@@ -1,5 +1,7 @@
 package ws
 
+import "github.com/sroeck/sungrow-go/inverter"
+
 // WebSocketParams contains settings specific to the WebSocket transport.
 type WebSocketParams struct {
 	Protocol string
@@ -22,7 +24,7 @@ var KeyTypes = struct {
 }
 
 type Key struct {
-	Name    string
+	Name    inverter.DataKey
 	KeyType KeyType
 }
 

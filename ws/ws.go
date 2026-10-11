@@ -118,12 +118,12 @@ func (ws *WS) Close() {
 }
 
 // Pv fetches pv data from the inverter.
-func (ws *WS) Pv() (res map[string]any, err error) {
+func (ws *WS) Pv() (res map[inverter.DataKey]any, err error) {
 	return ws.fetch("real", pvKeys)
 }
 
 // fetch fetches data from the inverter.
-func (ws *WS) fetch(service string, keyList Keys) (res map[string]any, err error) {
+func (ws *WS) fetch(service string, keyList Keys) (res map[inverter.DataKey]any, err error) {
 	req := RequestReal{"de_de", ws.token, ws.uid, service, time.Now().UnixMilli()}
 	if err := websocket.JSON.Send(ws.conn, &req); err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func (ws *WS) fetch(service string, keyList Keys) (res map[string]any, err error
 	}
 
 	// Output values
-	result := make(map[string]any)
+	result := make(map[inverter.DataKey]any)
 	for _, row := range resp.ResultData.List {
 		//log.Println(row)
 		if param, exists := keyList[row.DataName]; exists {

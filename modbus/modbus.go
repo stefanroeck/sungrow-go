@@ -66,7 +66,7 @@ func (c *Client) Close() {
 
 // Pv reads the SG15RT read-only FC04 register range and maps values to the
 // application keys used by the WebSocket transport.
-func (c *Client) Pv() (map[string]any, error) {
+func (c *Client) Pv() (map[inverter.DataKey]any, error) {
 	startAddress := firstRegisterReference - 1
 	data := make([]byte, int(registerCount)*2)
 	for offset := uint16(0); offset < registerCount; {
@@ -103,11 +103,11 @@ func (c *Client) Pv() (map[string]any, error) {
 	return decodeValues(registers)
 }
 
-func decodeValues(registers *packet.Registers) (map[string]any, error) {
+func decodeValues(registers *packet.Registers) (map[inverter.DataKey]any, error) {
 	u16 := func(reference uint16) (uint16, error) { return registers.Uint16(reference - 1) }
 	u32 := func(reference uint16) (uint32, error) { return registers.Uint32(reference - 1) }
-	values := make(map[string]any, 16)
-	put16 := func(key string, reference uint16, scale float64) error {
+	values := make(map[inverter.DataKey]any, 16)
+	put16 := func(key inverter.DataKey, reference uint16, scale float64) error {
 		raw, err := u16(reference)
 		if err != nil {
 			return fmt.Errorf("decode %s at reference %d: %w", key, reference, err)
@@ -115,7 +115,7 @@ func decodeValues(registers *packet.Registers) (map[string]any, error) {
 		values[key] = float64(raw) / scale
 		return nil
 	}
-	put32 := func(key string, reference uint16, scale float64) error {
+	put32 := func(key inverter.DataKey, reference uint16, scale float64) error {
 		raw, err := u32(reference)
 		if err != nil {
 			return fmt.Errorf("decode %s at reference %d: %w", key, reference, err)
@@ -124,36 +124,36 @@ func decodeValues(registers *packet.Registers) (map[string]any, error) {
 		return nil
 	}
 	for _, read := range []func() error{
-		func() error { return put16("todayEnergy", 5003, 10) },
-		func() error { return put32("totalEnergy", 5004, 1) },
-		func() error { return put32("totalRunningTime", 5006, 1) },
+		func() error { return put16(inverter.TodayEnergy, 5003, 10) },
+		func() error { return put32(inverter.TotalEnergy, 5004, 1) },
+		func() error { return put32(inverter.TotalRunningTime, 5006, 1) },
 		func() error {
 			raw, err := u16(5008)
 			if err != nil {
-				return fmt.Errorf("decode inverterTemp at reference 5008: %w", err)
+				return fmt.Errorf("decode %s at reference 5008: %w", inverter.InverterTemp, err)
 			}
-			values["inverterTemp"] = float64(int16(raw)) / 10
+			values[inverter.InverterTemp] = float64(int16(raw)) / 10
 			return nil
 		},
-		func() error { return put32("sunPower", 5017, 1000) },
-		func() error { return put16("voltagePhaseA", 5019, 10) },
-		func() error { return put16("voltagePhaseB", 5020, 10) },
-		func() error { return put16("voltagePhaseC", 5021, 10) },
-		func() error { return put16("currentPhaseA", 5022, 10) },
-		func() error { return put16("currentPhaseB", 5023, 10) },
-		func() error { return put16("currentPhaseC", 5024, 10) },
-		func() error { return put32("activePower", 5031, 1000) },
-		func() error { return put16("gridFrequency", 5148, 100) },
+		func() error { return put32(inverter.SunPower, 5017, 1000) },
+		func() error { return put16(inverter.VoltagePhaseA, 5019, 10) },
+		func() error { return put16(inverter.VoltagePhaseB, 5020, 10) },
+		func() error { return put16(inverter.VoltagePhaseC, 5021, 10) },
+		func() error { return put16(inverter.CurrentPhaseA, 5022, 10) },
+		func() error { return put16(inverter.CurrentPhaseB, 5023, 10) },
+		func() error { return put16(inverter.CurrentPhaseC, 5024, 10) },
+		func() error { return put32(inverter.ActivePower, 5031, 1000) },
+		func() error { return put16(inverter.GridFrequency, 5148, 100) },
 		func() error {
 			raw, err := u16(5038)
 			if err != nil {
-				return fmt.Errorf("decode status at reference 5038: %w", err)
+				return fmt.Errorf("decode %s at reference 5038: %w", inverter.Status, err)
 			}
-			values["status"] = statusString(raw)
+			values[inverter.Status] = statusString(raw)
 			return nil
 		},
-		func() error { return put16("arrayInsulationResistance", 5071, 1) },
-		func() error { return put16("busVoltage", 5147, 10) },
+		func() error { return put16(inverter.ArrayInsulationResistance, 5071, 1) },
+		func() error { return put16(inverter.BusVoltage, 5147, 10) },
 	} {
 		if err := read(); err != nil {
 			return nil, err

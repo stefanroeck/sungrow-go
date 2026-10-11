@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/aldas/go-modbus-client/packet"
+	"github.com/sroeck/sungrow-go/inverter"
 )
 
 func TestDecodeSG15RTRegisters(t *testing.T) {
@@ -37,15 +38,15 @@ func TestDecodeSG15RTRegisters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checks := map[string]any{
-		"todayEnergy":      float64(2),
-		"totalEnergy":      float64(56555),
-		"totalRunningTime": float64(14122),
-		"inverterTemp":     float64(-1.5),
-		"sunPower":         float64(2.053),
-		"activePower":      float64(2.051),
-		"gridFrequency":    float64(50),
-		"status":           "on grid operation",
+	checks := map[inverter.DataKey]any{
+		inverter.TodayEnergy:      float64(2),
+		inverter.TotalEnergy:      float64(56555),
+		inverter.TotalRunningTime: float64(14122),
+		inverter.InverterTemp:     float64(-1.5),
+		inverter.SunPower:         float64(2.053),
+		inverter.ActivePower:      float64(2.051),
+		inverter.GridFrequency:    float64(50),
+		inverter.Status:           "on grid operation",
 	}
 	for key, want := range checks {
 		if got := values[key]; got != want {
