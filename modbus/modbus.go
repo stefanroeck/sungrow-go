@@ -15,7 +15,10 @@ import (
 // Reference addresses in the README use mbpoll's one-based notation. The
 // client library uses zero-based PDU addresses, so convert at request creation.
 const firstRegisterReference uint16 = 5003
-const registerCount uint16 = 147 // through reference 5149, inclusive
+const (
+	maxReadRegisterCount uint16 = 125
+	registerCount        uint16 = 147 // through reference 5149, inclusive
+)
 
 type Client struct {
 	client *modbusclient.Client
@@ -65,23 +68,34 @@ func (c *Client) Close() {
 // application keys used by the WebSocket transport.
 func (c *Client) Pv() (map[string]any, error) {
 	startAddress := firstRegisterReference - 1
-	req, err := packet.NewReadInputRegistersRequestTCP(c.params.UnitID, startAddress, registerCount)
-	if err != nil {
-		return nil, fmt.Errorf("build SG15RT register request: %w", err)
+	data := make([]byte, int(registerCount)*2)
+	for offset := uint16(0); offset < registerCount; {
+		count := min(maxReadRegisterCount, registerCount-offset)
+		chunkStart := startAddress + offset
+		req, err := packet.NewReadInputRegistersRequestTCP(c.params.UnitID, chunkStart, count)
+		if err != nil {
+			return nil, fmt.Errorf("build SG15RT register request at address %d: %w", chunkStart, err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		resp, err := c.client.Do(ctx, req)
+		cancel()
+		if err != nil {
+			return nil, fmt.Errorf("read SG15RT input registers at address %d: %w", chunkStart, err)
+		}
+		readResp, ok := resp.(*packet.ReadInputRegistersResponseTCP)
+		if !ok {
+			return nil, fmt.Errorf("unexpected Modbus response type %T", resp)
+		}
+		chunkRegisters, err := readResp.AsRegisters(chunkStart)
+		if err != nil {
+			return nil, fmt.Errorf("decode SG15RT input registers at address %d: %w", chunkStart, err)
+		}
+		copy(data[int(offset)*2:], chunkRegisters.Data())
+		offset += count
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	resp, err := c.client.Do(ctx, req)
+	registers, err := packet.NewRegisters(data, startAddress)
 	if err != nil {
-		return nil, fmt.Errorf("read SG15RT input registers: %w", err)
-	}
-	readResp, ok := resp.(*packet.ReadInputRegistersResponseTCP)
-	if !ok {
-		return nil, fmt.Errorf("unexpected Modbus response type %T", resp)
-	}
-	registers, err := readResp.AsRegisters(startAddress)
-	if err != nil {
-		return nil, fmt.Errorf("decode SG15RT input registers: %w", err)
+		return nil, fmt.Errorf("assemble SG15RT input registers: %w", err)
 	}
 
 	// Register pairs use low word first per the SG15RT README mapping.
