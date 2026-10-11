@@ -1,10 +1,17 @@
 # stefanroeck/sungrow
 
-Tiny application to access real-time data from Sungrow inverters with WiNet-S dongle over WebSocket and publish data to a mqtt server.
+Tiny application to access real-time data from Sungrow inverters with WiNet-S dongle and publish data to an MQTT server. It supports two inverter transports: WebSocket and Modbus TCP.
 
 Written in GoLang, based on https://github.com/nItroTools/sungrow-go.
 
 # Usage
+
+## Inverter transports
+
+Two transports are available for communicating with the inverter:
+
+- **WebSocket** (`-transport websocket`): the default transport, used by the original SH10RT support. Configure the WebSocket protocol, port, credentials, and path as needed.
+- **Modbus TCP** (`-transport modbus`): supported for the SG15RT. It uses port 502 and unit ID 1 by default; override them with `-modbus.port` and `-modbus.unitId`.
 
 ## Docker
 
