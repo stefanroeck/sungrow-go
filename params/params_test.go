@@ -25,22 +25,22 @@ func TestParse_AllFlags(t *testing.T) {
 	cfg := ParseFlags(args)
 
 	// inverter params
-	if got, want := cfg.InverterParams.Protocol, "wss"; got != want {
+	if got, want := cfg.WebSocketParams.Protocol, "wss"; got != want {
 		t.Errorf("Protocol = %q; want %q", got, want)
 	}
 	if got, want := cfg.InverterParams.Host, "inverter.local"; got != want {
 		t.Errorf("Host = %q; want %q", got, want)
 	}
-	if got, want := cfg.InverterParams.Port, 9090; got != want {
+	if got, want := cfg.WebSocketParams.Port, 9090; got != want {
 		t.Errorf("Port = %d; want %d", got, want)
 	}
-	if got, want := cfg.InverterParams.User, "admin"; got != want {
+	if got, want := cfg.WebSocketParams.User, "admin"; got != want {
 		t.Errorf("User = %q; want %q", got, want)
 	}
-	if got, want := cfg.InverterParams.Password, "secret"; got != want {
+	if got, want := cfg.WebSocketParams.Password, "secret"; got != want {
 		t.Errorf("Password = %q; want %q", got, want)
 	}
-	if got, want := cfg.InverterParams.Path, "/custom/path"; got != want {
+	if got, want := cfg.WebSocketParams.Path, "/custom/path"; got != want {
 		t.Errorf("Path = %q; want %q", got, want)
 	}
 

@@ -4,13 +4,16 @@ import (
 	"flag"
 	"log"
 
+	"github.com/sroeck/sungrow-go/inverter"
 	"github.com/sroeck/sungrow-go/mqtt"
 	"github.com/sroeck/sungrow-go/ws"
 )
 
 // Config holds all parsed parameters
 type Config struct {
-	InverterParams        *ws.InverterParams
+	InverterParams        *inverter.Params
+	WebSocketParams       *ws.WebSocketParams
+	Transport             string
 	MqttParams            *mqtt.MqttParams
 	SleepBetweenCallsSecs int
 }
@@ -24,6 +27,7 @@ func ParseFlags(args []string) *Config {
 	user := fs.String("user", "", "Username for the Sungrow inverter web ui login, e.g. admin")
 	password := fs.String("password", "", "Password the Sungrow inverter web ui login")
 	path := fs.String("path", "/ws/home/overview", "Server path from where data is requested")
+	transport := fs.String("transport", "websocket", "Inverter communication transport, currently \"websocket\"")
 	mqttServer := fs.String("mqtt.server", "", "mqtt server incl. protocol, e.g. mqtt://localhost:1883. For TLS use ssl scheme, e.g. ssl://localhost:8883")
 	mqttUser := fs.String("mqtt.user", "", "mqtt user name")
 	mqttPassword := fs.String("mqtt.password", "", "mqtt password")
@@ -37,7 +41,8 @@ func ParseFlags(args []string) *Config {
 		log.Fatal(err)
 	}
 
-	inverterParams := &ws.InverterParams{Protocol: *protocol, Host: *host, Port: *port, User: *user, Password: *password, Path: *path}
+	inverterParams := &inverter.Params{Host: *host}
+	webSocketParams := &ws.WebSocketParams{Protocol: *protocol, Port: *port, User: *user, Password: *password, Path: *path}
 	mqttParams := &mqtt.MqttParams{Server: *mqttServer, ClientId: *mqttClientId, Topic: *mqttTopic, User: *mqttUser, Password: *mqttPassword, SkipSSLVerify: *mqttSkipSSLVerify}
 
 	// You can validate here or return errors if you want, skipping for brevity
@@ -46,12 +51,14 @@ func ParseFlags(args []string) *Config {
 
 	return &Config{
 		InverterParams:        inverterParams,
+		WebSocketParams:       webSocketParams,
+		Transport:             *transport,
 		MqttParams:            mqttParams,
 		SleepBetweenCallsSecs: *sleepBetweenCalls,
 	}
 }
 
-func validateInverterFlags(inverterParams *ws.InverterParams) {
+func validateInverterFlags(inverterParams *inverter.Params) {
 	if inverterParams.Host == "" {
 		log.Fatalln("Required parameter 'host' not set!\n'sungrow-go -help' lists available parameters.")
 	}

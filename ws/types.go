@@ -1,8 +1,8 @@
 package ws
 
-type InverterParams struct {
+// WebSocketParams contains settings specific to the WebSocket transport.
+type WebSocketParams struct {
 	Protocol string
-	Host     string
 	Port     int
 	User     string
 	Password string

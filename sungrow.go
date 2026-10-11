@@ -9,7 +9,7 @@ import (
 
 	"github.com/sroeck/sungrow-go/mqtt"
 	"github.com/sroeck/sungrow-go/params"
-	"github.com/sroeck/sungrow-go/ws"
+	"github.com/sroeck/sungrow-go/transport"
 )
 
 func main() {
@@ -25,13 +25,13 @@ func main() {
 
 	go func() {
 		// run immediately and then at the configured interval
-		fetchDataFromInverterAndSendToMqtt(cfg.InverterParams, mqttClient)
+		fetchDataFromInverterAndSendToMqtt(cfg, mqttClient)
 		for {
 			select {
 			case <-done:
 				return
 			case <-ticker.C:
-				fetchDataFromInverterAndSendToMqtt(cfg.InverterParams, mqttClient)
+				fetchDataFromInverterAndSendToMqtt(cfg, mqttClient)
 			}
 		}
 	}()
@@ -40,14 +40,20 @@ func main() {
 	select {}
 }
 
-func fetchDataFromInverterAndSendToMqtt(inverterParams *ws.InverterParams, mqttClient *mqtt.MqttClient) {
-	webSocket := openWebSocket(inverterParams)
-	defer webSocket.Close()
+func fetchDataFromInverterAndSendToMqtt(cfg *params.Config, mqttClient *mqtt.MqttClient) {
+	client, err := transport.New(transport.Kind(cfg.Transport), transport.Params{
+		Inverter:  cfg.InverterParams,
+		WebSocket: cfg.WebSocketParams,
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer client.Close()
 
 	var receivedValues map[string]any = make(map[string]any)
 
 	log.Println("Fetching pv data")
-	pvValues, err := webSocket.Pv()
+	pvValues, err := client.Pv()
 	processWsResult(receivedValues, pvValues, err)
 
 	if len(receivedValues) == 0 {
@@ -75,12 +81,4 @@ func processWsResult(targetMap map[string]any, resultMap map[string]any, err err
 func prettyPrintMap(resultMap map[string]any) {
 	b, _ := json.MarshalIndent(resultMap, "", "  ")
 	log.Print("Received the following values: ", string(b))
-}
-
-func openWebSocket(inverterParams *ws.InverterParams) *ws.WS {
-	webSocket := ws.NewWS(inverterParams)
-	if err := webSocket.Connect(); err != nil {
-		log.Fatalln(err)
-	}
-	return webSocket
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sroeck/sungrow-go/inverter"
 	"golang.org/x/net/websocket"
 )
 
@@ -24,17 +25,27 @@ type WS struct {
 }
 
 // NewWS returns a new WS instance.
-func NewWS(inverterParams *InverterParams) *WS {
+func NewWS(inverterParams *inverter.Params, params *WebSocketParams) *WS {
 	ws := &WS{
-		protocol: inverterParams.Protocol,
+		protocol: params.Protocol,
 		host:     inverterParams.Host,
-		port:     inverterParams.Port,
-		user:     inverterParams.User,
-		password: inverterParams.Password,
-		path:     inverterParams.Path,
+		port:     params.Port,
+		user:     params.User,
+		password: params.Password,
+		path:     params.Path,
 	}
 
 	return ws
+}
+
+// Open creates and connects a WebSocket client.
+func Open(inverterParams *inverter.Params, params *WebSocketParams) (inverter.Client, error) {
+	client := NewWS(inverterParams, params)
+	if err := client.Connect(); err != nil {
+		client.Close()
+		return nil, err
+	}
+	return client, nil
 }
 
 // Connect connects to the inverter using the WebSocket protocol.
