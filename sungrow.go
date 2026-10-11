@@ -47,7 +47,8 @@ func fetchDataFromInverterAndSendToMqtt(cfg *params.Config, mqttClient *mqtt.Mqt
 		Modbus:    cfg.ModbusParams,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		log.Printf("Failed to create inverter client; will retry next poll: %v", err)
+		return
 	}
 	defer client.Close()
 
@@ -55,7 +56,11 @@ func fetchDataFromInverterAndSendToMqtt(cfg *params.Config, mqttClient *mqtt.Mqt
 
 	log.Println("Fetching pv data")
 	pvValues, err := client.Pv()
-	processWsResult(receivedValues, pvValues, err)
+	if err != nil {
+		log.Printf("Failed to fetch inverter data; will retry next poll: %v", err)
+		return
+	}
+	processWsResult(receivedValues, pvValues)
 
 	if len(receivedValues) == 0 {
 		log.Println("Skip sending MQTT data as no data have been returned from inverter")
@@ -65,11 +70,7 @@ func fetchDataFromInverterAndSendToMqtt(cfg *params.Config, mqttClient *mqtt.Mqt
 	mqttClient.Send(receivedValues)
 }
 
-func processWsResult(targetMap map[string]any, resultMap map[string]any, err error) {
-	if err != nil {
-		log.Fatalln(err)
-		return
-	}
+func processWsResult(targetMap map[string]any, resultMap map[string]any) {
 	if len(resultMap) == 0 {
 		log.Println("Warning: No data returned")
 		return
