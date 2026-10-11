@@ -3,7 +3,6 @@ package transport
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/sroeck/sungrow-go/inverter"
 	"github.com/sroeck/sungrow-go/modbus"
@@ -27,7 +26,6 @@ type Params struct {
 
 // New constructs and connects a client for the selected transport.
 func New(kind Kind, params Params) (inverter.Client, error) {
-	log.Printf("Constructing inverter client: %s", kind)
 	switch kind {
 	case WebSocket:
 		if params.Inverter == nil {
@@ -40,7 +38,6 @@ func New(kind Kind, params Params) (inverter.Client, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("Constructed inverter client: transport=%s, type=%T", kind, client)
 		return client, nil
 	case Modbus:
 		if params.Modbus == nil {
@@ -50,7 +47,6 @@ func New(kind Kind, params Params) (inverter.Client, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("Constructed inverter client: transport=%s, type=%T", kind, client)
 		return client, nil
 	default:
 		return nil, fmt.Errorf("unsupported inverter transport %q", kind)
