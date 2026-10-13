@@ -163,8 +163,12 @@ func decodeValues(registers *packet.Registers) (map[inverter.DataKey]any, error)
 }
 
 func statusString(code uint16) string {
-	if code == 0 {
+	switch code {
+	case 0:
 		return "on grid operation"
+	case 5120:
+		return "standby"
+	default:
+		return fmt.Sprintf("unknown (%d)", code)
 	}
-	return fmt.Sprintf("unknown (%d)", code)
 }
